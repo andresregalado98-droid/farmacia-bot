@@ -447,8 +447,8 @@ async def recibir_webhook(request: Request):
                         texto_usuario = (msg.get("text") or {}).get("body", "")
                         respuesta_directa, termino = procesar_mensaje_usuario(texto_usuario)
 
-                        if respuesta_directa:
-                     enviar_mensaje_whatsapp(remitente, respuesta_directa)
+                       if respuesta_directa:
+                            enviar_mensaje_whatsapp(remitente, respuesta_directa)
                  elif not INVENTARIO:
                      enviar_mensaje_whatsapp(
                          remitente,
