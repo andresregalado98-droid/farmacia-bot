@@ -267,6 +267,70 @@ def responder_consulta_productos(termino_o_lista) -> str:
     bloques.append(MENSAJE_DESPEDIDA)
     return "\n".join(bloques)[:3800]
 
+import base64
+
+
+def descargar_audio_whatsapp(media_id: str):
+    token = (os.getenv("WHATSAPP_TOKEN") or "").strip()
+    if not token or not media_id:
+        return None, None
+
+    headers = {"Authorization": f"Bearer {token}"}
+    meta_url = f"https://graph.facebook.com/v21.0/{media_id}"
+    resp_meta = requests.get(meta_url, headers=headers, timeout=20)
+    resp_meta.raise_for_status()
+    info = resp_meta.json()
+
+    download_url = info.get("url")
+    mime_type = (info.get("mime_type") or "audio/ogg").split(";")[0].strip()
+    if not download_url:
+        return None, None
+
+    resp_audio = requests.get(download_url, headers=headers, timeout=30)
+    resp_audio.raise_for_status()
+    return resp_audio.content, mime_type
+
+
+def transcribir_audio_gemini(audio_bytes: bytes, mime_type: str = "audio/ogg") -> str:
+    api_key = (os.getenv("GEMINI_API_KEY") or "").strip()
+    if not api_key or not audio_bytes:
+        return ""
+
+    b64_audio = base64.b64encode(audio_bytes).decode("utf-8")
+    url = (
+        "https://generativelanguage.googleapis.com/v1beta/models/"
+        f"gemini-2.5-flash:generateContent?key={api_key}"
+    )
+    payload = {
+        "contents": [
+            {
+                "parts": [
+                    {
+                        "text": (
+                            "Transcribe exactamente lo que dice este audio en español. "
+                            "Devuelve solo el texto transcrito, sin explicaciones ni comillas."
+                        )
+                    },
+                    {
+                        "inline_data": {
+                            "mime_type": mime_type or "audio/ogg",
+                            "data": b64_audio,
+                        }
+                    },
+                ]
+            }
+        ]
+    }
+    resp = requests.post(url, json=payload, timeout=30)
+    resp.raise_for_status()
+    data = resp.json()
+
+    candidatos = data.get("candidates") or []
+    if not candidatos:
+        return ""
+    partes = ((candidatos[0].get("content") or {}).get("parts")) or []
+    texto = " ".join(p.get("text", "") for p in partes if p.get("text")).strip()
+    return texto
 def enviar_mensaje_whatsapp(telefono_destino: str, mensaje: str):
     token = (os.getenv("WHATSAPP_TOKEN") or "").strip()
     phone_number_id = (os.getenv("PHONE_NUMBER_ID") or "").strip()
@@ -392,9 +456,9 @@ async def recibir_webhook(request: Request):
                                 "Por favor intenta de nuevo en unos minutos o escribe *asesor* "
                                 "para hablar con nuestro equipo."
                             )
-                        else:
-                            respuesta = responder_consulta_productos(termino)
-                            enviar_mensaje_whatsapp(remitente, respuesta)
+                         else:
+                     respuesta = responder_consulta_productos(termino)
+                     enviar_mensaje_whatsapp(remitente, respuesta)
                     else:
                         enviar_mensaje_whatsapp(
                             remitente,
