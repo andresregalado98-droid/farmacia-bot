@@ -393,16 +393,36 @@ async def recibir_webhook(request: Request):
                 if not remitente:
                     continue
 
-                if tipo == "text":
-                    texto_usuario = (msg.get("text") or {}).get("body", "")
-                    respuesta_directa, termino = procesar_mensaje_usuario(texto_usuario)
+                try:
+                    if tipo == "text":
+                        texto_usuario = (msg.get("text") or {}).get("body", "")
+                        respuesta_directa, termino = procesar_mensaje_usuario(texto_usuario)
 
-                    if respuesta_directa:
-                        enviar_mensaje_whatsapp(remitente, respuesta_directa)
-                    elif not INVENTARIO:
-                     enviar_mensaje_whatsapp(
-                         remitente,
-                         "El inventario de la farmacia aún se está sincronizando. "
-                         "Por favor intenta de nuevo en unos minutos o escribe *asesor* "
-                         "para hablar con nuestro equipo."
-                     )
+                        if respuesta_directa:
+                            enviar_mensaje_whatsapp(remitente, respuesta_directa)
+                        elif not INVENTARIO:
+                            enviar_mensaje_whatsapp(
+                                remitente,
+                                "El inventario de la farmacia aún se está sincronizando. "
+                                "Por favor intenta de nuevo en unos minutos o escribe *asesor* "
+                                "para hablar con nuestro equipo."
+                            )
+                        else:
+                            respuesta = responder_consulta_productos(termino)
+                            enviar_mensaje_whatsapp(remitente, respuesta)
+                    else:
+                        enviar_mensaje_whatsapp(
+                            remitente,
+                            "Por el momento solo puedo leer mensajes de texto. "
+                            "Escríbeme el nombre del producto que buscas o escribe *asesor* "
+                            "para hablar con nuestro equipo."
+                        )
+                except Exception as e:
+                    print(f"[ERROR] Procesando mensaje de {remitente}: {e}")
+                    enviar_mensaje_whatsapp(
+                        remitente,
+                        "Tuve un inconveniente al consultar ese producto. "
+                        "Por favor intenta escribiendo solo el nombre del medicamento o *asesor*."
+                    )
+
+    return {"status": "ok"}
