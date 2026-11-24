@@ -163,7 +163,7 @@ def buscar_productos(termino: str, limite: int = 8) -> list:
     return coincidencias
 
 
-def formatear_respuesta_productos(termino: str, productos: list) -> str:
+def def formatear_respuesta_productos(termino: str, productos: list) -> str:
     if not productos:
         return (
             f"No encontré resultados para *{termino}* en este momento. "
@@ -172,43 +172,73 @@ def formatear_respuesta_productos(termino: str, productos: list) -> str:
         )
 
     lineas = [f"Resultados para *{termino}*:\n"]
-    for p in productos:
+    for p in productos[:5]:
+        usd = float(p.get("usd") or 0.0)
+        bs = float(p.get("bs") or 0.0)
+        cop = float(p.get("cop") or 0.0)
+        desc = str(p.get("descripcion") or "Producto")
+        codigo = str(p.get("codigo") or "N/A")
         lineas.append(
-            f"• *{p['descripcion']}* (Cód: {p['codigo']})\n"
-            f"  USD: ${p['usd']:.2f} | Bs. {p['bs']:,.2f} | COP {p['cop']:,.0f}"
+            f"• *{desc}* (Cód: {codigo})\n"
+            f"  USD: ${usd:.2f} | Bs. {bs:,.2f} | COP {cop:,.0f}"
         )
 
     lineas.append(f"\n{MENSAJE_DESPEDIDA}")
-    return "\n".join(lineas)
+    texto_final = "\n".join(lineas)
+    return texto_final[:3800]
 
 
-def enviar_mensaje_whatsapp(telefono_destino: str, mensaje: str):
-    token = (os.getenv("WHATSAPP_TOKEN") or "").strip()
-    phone_number_id = (os.getenv("PHONE_NUMBER_ID") or "").strip()
-    if not token or not phone_number_id:
-        print("[WARN] Faltan WHATSAPP_TOKEN o PHONE_NUMBER_ID en variables de entorno.")
-        return
-
-    url = f"https://graph.facebook.com/v21.0/{phone_number_id}/messages"
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json",
-    }
-    payload = {
-        "messaging_product": "whatsapp",
-        "to": telefono_destino,
-        "type": "text",
-        "text": {"body": mensaje},
-    }
+@app.post("/webhook")
+async def recibir_webhook(request: Request):
     try:
-        resp = requests.post(url, headers=headers, json=payload, timeout=20)
-        if resp.status_code >= 400:
-            print(f"[ERROR] WhatsApp API {resp.status_code}: {resp.text}")
-    except Exception as e:
-        print(f"[ERROR] Enviando mensaje a WhatsApp: {e}")
+        body = await request.json()
+    except Exception:
+        return {"status": "ignored"}
 
+    for entry in body.get("entry", []):
+        for change in entry.get("changes", []):
+            value = change.get("value", {})
+            for msg in value.get("messages", []):
+                remitente = msg.get("from")
+                tipo = msg.get("type")
 
-@app.get("/")
+                if not remitente:
+                    continue
+
+                try:
+                    if tipo == "text":
+                        texto_usuario = (msg.get("text") or {}).get("body", "")
+                        respuesta_directa, termino = procesar_mensaje_usuario(texto_usuario)
+
+                        if respuesta_directa:
+                            enviar_mensaje_whatsapp(remitente, respuesta_directa)
+                        elif not INVENTARIO:
+                            enviar_mensaje_whatsapp(
+                                remitente,
+                                "El inventario de la farmacia aún se está sincronizando. "
+                                "Por favor intenta de nuevo en unos minutos o escribe *asesor* "
+                                "para hablar con nuestro equipo."
+                            )
+                        else:
+                            encontrados = buscar_productos(termino)
+                            respuesta = formatear_respuesta_productos(termino, encontrados)
+                            enviar_mensaje_whatsapp(remitente, respuesta)
+                    else:
+                        enviar_mensaje_whatsapp(
+                            remitente,
+                            "Por el momento solo puedo leer mensajes de texto. "
+                            "Escríbeme el nombre del producto que buscas o escribe *asesor* "
+                            "para hablar con nuestro equipo."
+                        )
+                except Exception as e:
+                    print(f"[ERROR] Procesando mensaje de {remitente}: {e}")
+                    enviar_mensaje_whatsapp(
+                        remitente,
+                        "Tuve un inconveniente al consultar ese producto. "
+                        "Por favor intenta escribiendo solo el nombre del medicamento o *asesor*."
+                    )
+
+    return {"status": "ok"}
 def inicio():
     return {
         "status": "ok",
