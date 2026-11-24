@@ -34,7 +34,7 @@ def _normalizar(texto: str) -> str:
     return re.sub(r"\s+", " ", texto).strip().lower()
 
 
-def def procesar_mensaje_usuario(texto: str):
+def procesar_mensaje_usuario(texto: str):
     texto_limpio = (texto or "").strip()
     if not texto_limpio:
         return MENSAJE_BIENVENIDA, None
