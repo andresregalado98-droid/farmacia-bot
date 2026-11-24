@@ -35,22 +35,23 @@ def _normalizar(texto: str) -> str:
     return re.sub(r"\s+", " ", texto).strip().lower()
 
 
-def procesar_mensaje_usuario(texto: str):
+def def procesar_mensaje_usuario(texto: str):
     texto_limpio = (texto or "").strip()
-    minuscula = texto_limpio.lower()
+    minuscula = _normalizar(texto_limpio)
 
     saludos = (
-        "hola", "buenos dias", "buenos días",
-        "buenas tardes", "buenas noches", "buenas"
+        "hola", "buenos dias", "buenas tardes",
+        "buenas noches", "buenas", "que tal", "saludos"
     )
     despedidas = (
-        "gracias", "muchas gracias", "adios", "adiós",
+        "gracias", "muchas gracias", "adios",
         "hasta luego", "chao", "bye", "listo gracias"
     )
 
-    sin_signos = re.sub(r"[¡!¿?.,]+$", "", minuscula).strip()
+    sin_signos = re.sub(r"[^\w\s]", " ", minuscula)
+    sin_signos = re.sub(r"\s+", " ", sin_signos).strip()
 
-    if sin_signos in saludos:
+    if not sin_signos or sin_signos in saludos:
         return MENSAJE_BIENVENIDA, None
 
     if sin_signos in despedidas:
@@ -59,21 +60,32 @@ def procesar_mensaje_usuario(texto: str):
     if sin_signos in ("asesor", "humano", "agente", "persona"):
         return MENSAJE_ASESOR, None
 
-    # Si empieza con saludo seguido de consulta (ej. "Buenas noches! Tienen airon de 4mg")
-    consulta = minuscula
-    for s in sorted(saludos, key=len, reverse=True):
-        if consulta.startswith(s):
-            consulta = re.sub(r"^[\s,!¡¿?.:-]+", "", consulta[len(s):]).strip()
-            break
+    consulta = sin_signos
 
-    consulta = re.sub(
-        r"\b(tienen|tiene|hay|disponible|precio|precios|de|del|la|el|los|las|un|una|por favor)\b",
-        " ",
-        consulta
+    # Quita saludos al inicio de la frase (ej. "buenos dias tienen airon")
+    for s in sorted(saludos, key=len, reverse=True):
+        consulta = re.sub(rf"^(?:{re.escape(s)})(?:\s+|$)+", " ", consulta).strip()
+
+    # Quita frases y palabras comunes al consultar productos ("busco", "tienen", etc.)
+    palabras_relleno = (
+        "andaba buscando", "estoy buscando", "quisiera saber si tienen",
+        "quisiera saber si hay", "me podrias decir si tienen", "me puedes decir si tienen",
+        "tienen", "tiene", "tenes", "tenés", "hay", "disponible", "disponibles",
+        "busco", "buscar", "necesito", "quiero", "quisiera", "deseo",
+        "precio", "precios", "cuanto cuesta", "cuanto vale", "cuesta", "vale",
+        "en existencia", "existencia", "stock",
+        "de", "del", "la", "el", "los", "las", "un", "una", "unos", "unas",
+        "por", "favor", "porfa", "me", "te", "se", "si", "y", "o", "para", "con"
     )
+    patron_relleno = r"\b(?:" + "|".join(sorted(palabras_relleno, key=len, reverse=True)) + r")\b"
+    consulta = re.sub(patron_relleno, " ", consulta)
     consulta = re.sub(r"\s+", " ", consulta).strip()
 
-    return None, (consulta if consulta else texto_limpio)
+    # Si tras quitar palabras de consulta solo queda un saludo o queda vacío, saluda
+    if not consulta or consulta in saludos:
+        return MENSAJE_BIENVENIDA, None
+
+    return None, consulta
 
 
 def _a_numero(valor, por_defecto=0.0) -> float:
