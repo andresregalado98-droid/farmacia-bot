@@ -1,4 +1,6 @@
 import re
+from fastapi import FastAPI
+app = FastAPI()
 
 MENSAJE_BIENVENIDA = (
     "¡Hola! Bienvenido a *Farmacia Unitas Norte* (RIF: *J-298120886*).\n"
