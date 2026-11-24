@@ -36,6 +36,9 @@ def _normalizar(texto: str) -> str:
 
 def procesar_mensaje_usuario(texto: str):
     texto_limpio = (texto or "").strip()
+    if not texto_limpio:
+        return MENSAJE_BIENVENIDA, None
+
     minuscula = _normalizar(texto_limpio)
 
     saludos = (
@@ -47,34 +50,17 @@ def procesar_mensaje_usuario(texto: str):
         "hasta luego", "chao", "bye", "listo gracias"
     }
 
-    sin_signos = re.sub(r"[^\w\s,;\n]", " ", minuscula)
-    sin_signos = re.sub(r"[ \t]+", " ", sin_signos).strip()
+    texto_plano = re.sub(r"[^\w\s]", " ", minuscula)
+    texto_plano = re.sub(r"\s+", " ", texto_plano).strip()
 
-    if not sin_signos:
+    if not texto_plano:
         return MENSAJE_BIENVENIDA, None
 
-    sin_comas = re.sub(r"[,;\n]+", " ", sin_signos)
-    sin_comas = re.sub(r"\s+", " ", sin_comas).strip()
-
-    if sin_comas in despedidas_exactas:
+    if texto_plano in despedidas_exactas:
         return MENSAJE_DESPEDIDA, None
 
-    if sin_comas in ("asesor", "humano", "agente", "persona"):
+    if texto_plano in ("asesor", "humano", "agente", "persona"):
         return MENSAJE_ASESOR, None
-
-    frase = sin_signos
-    cambio = True
-    while cambio and frase:
-        cambio = False
-        frase_limpia_saludo = re.sub(r"[,;\n]+", " ", frase).strip()
-        frase_limpia_saludo = re.sub(r"\s+", " ", frase_limpia_saludo)
-        if frase_limpia_saludo in saludos:
-            return MENSAJE_BIENVENIDA, None
-        for s in saludos:
-            if re.match(rf"^{re.escape(s)}(?:[\s,;]+|$)", frase):
-                frase = re.sub(rf"^{re.escape(s)}[\s,;]*", "", frase, count=1).strip()
-                cambio = True
-                break
 
     relleno = {
         "tienen", "tiene", "tenes", "tenés", "hay", "habra", "habrá",
@@ -88,23 +74,53 @@ def procesar_mensaje_usuario(texto: str):
         "de", "del", "la", "el", "los", "las",
         "un", "una", "unos", "unas",
         "por", "favor", "porfa", "plis",
-        "te", "se", "para", "con", "algun", "algún", "alguna", "algunos", "algunas"
+        "te", "se", "para", "con", "algun", "algún", "alguna", "algunos", "algunas",
+        "y", "e"
     }
 
-    segmentos_crudos = re.split(r"[,;\n]+|\s+(?:y|e)\s+", frase)
     terminos = []
+    lineas_norm = _normalizar(texto_limpio).splitlines()
 
-    for seg in segmentos_crudos:
-        palabras = [p for p in seg.split() if p not in relleno]
-        limpio = " ".join(palabras).strip()
-        if limpio and limpio not in saludos:
-            terminos.append(limpio)
+    for linea in lineas_norm:
+        # Quita viñetas o numeración inicial (ej. "- ", "* ", "• ", "1. ", "1) ")
+        linea_limpia = re.sub(r"^\s*(?:[-*•]+|\d+[.)])\s*", " ", linea)
+        linea_limpia = re.sub(r"[^\w\s,;]", " ", linea_limpia)
+        linea_limpia = re.sub(r"\s+", " ", linea_limpia).strip()
+
+        if not linea_limpia:
+            continue
+
+        # Quita saludos al inicio de la línea (ej. "buenos dias tienen...")
+        cambio = True
+        while cambio and linea_limpia:
+            cambio = False
+            if linea_limpia in saludos:
+                linea_limpia = ""
+                break
+            for s in saludos:
+                if re.match(rf"^{re.escape(s)}(?:[\s,;]+|$)", linea_limpia):
+                    linea_limpia = re.sub(rf"^{re.escape(s)}[\s,;]*", "", linea_limpia, count=1).strip()
+                    cambio = True
+                    break
+
+        if not linea_limpia:
+            continue
+
+        # Divide por comas, punto y coma o conectores "y" / "e"
+        partes = re.split(r"[,;]+|\s+(?:y|e)\s+", linea_limpia)
+        for parte in partes:
+            palabras = [p for p in parte.split() if p not in relleno]
+            termino = " ".join(palabras).strip()
+            if termino and termino not in saludos and termino not in terminos:
+                terminos.append(termino)
 
     if not terminos:
-        frase_sin_relleno = " ".join(p for p in sin_comas.split() if p not in relleno).strip()
-        if not frase_sin_relleno or frase_sin_relleno in saludos:
+        if texto_plano in saludos:
             return MENSAJE_BIENVENIDA, None
-        return None, [frase_sin_relleno]
+        palabras_sueltas = [p for p in texto_plano.split() if p not in relleno and p not in saludos]
+        if not palabras_sueltas:
+            return MENSAJE_BIENVENIDA, None
+        return None, [" ".join(palabras_sueltas)]
 
     return None, terminos
 
