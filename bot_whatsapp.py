@@ -1,3 +1,4 @@
+import base64
 import os
 import re
 import unicodedata
@@ -83,11 +84,13 @@ def procesar_mensaje_usuario(texto: str):
     }
 
     terminos = []
-    # Se separa por salto de línea ANTES de normalizar para conservar cada fila de la lista
     for linea_cruda in texto_limpio.splitlines():
         linea_norm = _normalizar(linea_cruda)
         if not linea_norm:
             continue
+
+        linea_norm = re.sub(r"(\d+)([a-z]+)", r"\1 \2", linea_norm)
+        linea_norm = re.sub(r"([a-z]+)(\d+)", r"\1 \2", linea_norm)
 
         linea_limpia = re.sub(r"^\s*(?:[-*•]+|\d+[.)])\s*", " ", linea_norm)
         linea_limpia = re.sub(r"[^\w\s,;]", " ", linea_limpia)
@@ -152,6 +155,7 @@ def _a_numero(valor, por_defecto=0.0) -> float:
         return float(limpio)
     except ValueError:
         return por_defecto
+
 
 def buscar_productos(termino: str, limite: int = 8) -> list:
     termino_norm = _normalizar(termino)
@@ -267,8 +271,6 @@ def responder_consulta_productos(termino_o_lista) -> str:
     bloques.append(MENSAJE_DESPEDIDA)
     return "\n".join(bloques)[:3800]
 
-import base64
-
 
 def descargar_audio_whatsapp(media_id: str):
     token = (os.getenv("WHATSAPP_TOKEN") or "").strip()
@@ -331,6 +333,8 @@ def transcribir_audio_gemini(audio_bytes: bytes, mime_type: str = "audio/ogg") -
     partes = ((candidatos[0].get("content") or {}).get("parts")) or []
     texto = " ".join(p.get("text", "") for p in partes if p.get("text")).strip()
     return texto
+
+
 def enviar_mensaje_whatsapp(telefono_destino: str, mensaje: str):
     token = (os.getenv("WHATSAPP_TOKEN") or "").strip()
     phone_number_id = (os.getenv("PHONE_NUMBER_ID") or "").strip()
@@ -447,18 +451,19 @@ async def recibir_webhook(request: Request):
                         texto_usuario = (msg.get("text") or {}).get("body", "")
                         respuesta_directa, termino = procesar_mensaje_usuario(texto_usuario)
 
-                       if respuesta_directa:
+                        if respuesta_directa:
                             enviar_mensaje_whatsapp(remitente, respuesta_directa)
-                 elif not INVENTARIO:
-                     enviar_mensaje_whatsapp(
-                         remitente,
-                         "El inventario de la farmacia aún se está sincronizando. "
-                         "Por favor intenta de nuevo en unos minutos o escribe *asesor* "
-                         "para hablar con nuestro equipo."
-                     )
-                 else:
-                     respuesta = responder_consulta_productos(termino)
-                     enviar_mensaje_whatsapp(remitente, respuesta)
+                        elif not INVENTARIO:
+                            enviar_mensaje_whatsapp(
+                                remitente,
+                                "El inventario de la farmacia aún se está sincronizando. "
+                                "Por favor intenta de nuevo en unos minutos o escribe *asesor* "
+                                "para hablar con nuestro equipo."
+                            )
+                        else:
+                            respuesta = responder_consulta_productos(termino)
+                            enviar_mensaje_whatsapp(remitente, respuesta)
+
                     elif tipo == "audio":
                         media_id = ((msg.get("audio") or {}).get("id") or "").strip()
                         audio_bytes, mime_type = descargar_audio_whatsapp(media_id)
