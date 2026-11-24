@@ -291,9 +291,7 @@ async def recibir_webhook(request: Request):
                     if respuesta_directa:
                         enviar_mensaje_whatsapp(remitente, respuesta_directa)
                     elif not INVENTARIO:
-                        enviar_mensaje_whatsapp(
-                            remitente,
-                           enviar_mensaje_whatsapp(
+                     enviar_mensaje_whatsapp(
                          remitente,
                          "El inventario de la farmacia aún se está sincronizando. "
                          "Por favor intenta de nuevo en unos minutos o escribe *asesor* "
