@@ -35,7 +35,7 @@ def _normalizar(texto: str) -> str:
     return re.sub(r"\s+", " ", texto).strip().lower()
 
 
- def procesar_mensaje_usuario(texto: str):
+def procesar_mensaje_usuario(texto: str):
     texto_limpio = (texto or "").strip()
     minuscula = _normalizar(texto_limpio)
 
@@ -293,20 +293,4 @@ async def recibir_webhook(request: Request):
                     elif not INVENTARIO:
                         enviar_mensaje_whatsapp(
                             remitente,
-                            "El inventario de la farmacia aún se está sincronizando. "
-                            "Por favor intenta de nuevo en unos minutos o escribe *asesor* "
-                            "para hablar con nuestro equipo."
-                        )
-                    else:
-                        encontrados = buscar_productos(termino)
-                        respuesta = formatear_respuesta_productos(termino, encontrados)
-                        enviar_mensaje_whatsapp(remitente, respuesta)
-                else:
-                    enviar_mensaje_whatsapp(
-                        remitente,
-                        "Por el momento solo puedo leer mensajes de texto. "
-                        "Escríbeme el nombre del producto que buscas o escribe *asesor* "
-                        "para hablar con nuestro equipo."
-                    )
-
-    return {"status": "ok"}
+                            "El inventario de la farmacia aún se está sincronizando
