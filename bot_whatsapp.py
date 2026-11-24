@@ -13,6 +13,10 @@ MENSAJE_BIENVENIDA = (
     "Si necesitas atención personalizada, escribe *asesor* y nuestro equipo te atendera."
 )
 
+MENSAJE_BIENVENIDA_PRODUCTO = (
+    "¡Hola! Gracias por escribir a *Farmacia Unitas Norte* (RIF: *J-298120886*).\n"
+)
+
 MENSAJE_DESPEDIDA = (
     "¡Gracias por preferir a *Farmacia Unitas Norte* (RIF: *J-298120886*)! "
     "Estamos a tu orden. Si deseas consultar otro producto, solo escríbeme su nombre, "
@@ -208,13 +212,14 @@ def _a_numero(valor, por_defecto=0.0) -> float:
 def formatear_respuesta_productos(termino: str, productos: list) -> str:
     if not productos:
         return (
+            f"{MENSAJE_BIENVENIDA_PRODUCTO}"
             f"No encontré resultados para *{termino}* en este momento. "
             f"Verifica el nombre del producto o escribe *asesor* y pronto seras atendido por nuestro personal.\n\n"
             f"{MENSAJE_DESPEDIDA}"
         )
 
     lineas = [
-        f"{MENSAJE_BIENVENIDA}\n",
+        f"{MENSAJE_BIENVENIDA_PRODUCTO}",
         f"Resultados para *{termino}*:\n",
     ]
     for p in productos[:5]:
@@ -241,7 +246,7 @@ def responder_consulta_productos(termino_o_lista) -> str:
         encontrados = buscar_productos(termino)
         return formatear_respuesta_productos(termino, encontrados)
 
-    bloques = [f"{MENSAJE_BIENVENIDA}\n"]
+    bloques = [f"{MENSAJE_BIENVENIDA_PRODUCTO}"]
     for term in terminos:
         encontrados = buscar_productos(term)
         bloques.append(f"*Consulta: {term}*")
@@ -262,7 +267,6 @@ def responder_consulta_productos(termino_o_lista) -> str:
 
     bloques.append(MENSAJE_DESPEDIDA)
     return "\n".join(bloques)[:3800]
-
 
 def enviar_mensaje_whatsapp(telefono_destino: str, mensaje: str):
     token = (os.getenv("WHATSAPP_TOKEN") or "").strip()
