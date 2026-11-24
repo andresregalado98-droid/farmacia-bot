@@ -35,58 +35,67 @@ def _normalizar(texto: str) -> str:
     return re.sub(r"\s+", " ", texto).strip().lower()
 
 
-def procesar_mensaje_usuario(texto: str):
+def  procesar_mensaje_usuario(texto: str):
     texto_limpio = (texto or "").strip()
     minuscula = _normalizar(texto_limpio)
 
     saludos = (
-        "hola", "buenos dias", "buenas tardes",
-        "buenas noches", "buenas", "que tal", "saludos"
+        "buenos dias", "buenas tardes", "buenas noches",
+        "que tal", "buenas", "saludos", "hola"
     )
-    despedidas = (
+    despedidas_exactas = {
         "gracias", "muchas gracias", "adios",
         "hasta luego", "chao", "bye", "listo gracias"
-    )
+    }
 
+    # Reemplaza signos de puntuación por espacios para que "hola,tienen" o "buenos dias!busco" se separen bien
     sin_signos = re.sub(r"[^\w\s]", " ", minuscula)
     sin_signos = re.sub(r"\s+", " ", sin_signos).strip()
 
-    if not sin_signos or sin_signos in saludos:
+    if not sin_signos:
         return MENSAJE_BIENVENIDA, None
 
-    if sin_signos in despedidas:
+    if sin_signos in despedidas_exactas:
         return MENSAJE_DESPEDIDA, None
 
     if sin_signos in ("asesor", "humano", "agente", "persona"):
         return MENSAJE_ASESOR, None
 
-    consulta = sin_signos
+    # Quita saludos repetidos al inicio (ej. "hola buenos dias tienen...", "buenos dias hola busco...")
+    cambio = True
+    while cambio and sin_signos:
+        cambio = False
+        if sin_signos in saludos:
+            return MENSAJE_BIENVENIDA, None
+        for s in saludos:
+            if sin_signos.startswith(s + " "):
+                sin_signos = sin_signos[len(s):].strip()
+                cambio = True
+                break
 
-    # Quita saludos al inicio de la frase (ej. "buenos dias tienen airon")
-    for s in sorted(saludos, key=len, reverse=True):
-        consulta = re.sub(rf"^(?:{re.escape(s)})(?:\s+|$)+", " ", consulta).strip()
+    relleno = {
+        "tienen", "tiene", "tenes", "tenés", "hay", "habra", "habrá",
+        "disponible", "disponibles", "disponibilidad",
+        "busco", "buscar", "buscando", "andaba", "estoy", "ando",
+        "necesito", "necesita", "quiero", "quisiera", "deseo",
+        "saber", "si", "me", "puedes", "podrias", "podrías", "puede", "podria", "podría",
+        "decir", "decirme", "consultar", "averiguar",
+        "precio", "precios", "cuanto", "cuánto", "cuesta", "cuestan", "vale", "valen",
+        "en", "existencia", "existencias", "stock",
+        "de", "del", "la", "el", "los", "las",
+        "un", "una", "unos", "unas",
+        "por", "favor", "porfa", "plis",
+        "te", "se", "y", "o", "para", "con", "algun", "algún", "alguna", "algunos", "algunas"
+    }
 
-    # Quita frases y palabras comunes al consultar productos ("busco", "tienen", etc.)
-    palabras_relleno = (
-        "andaba buscando", "estoy buscando", "quisiera saber si tienen",
-        "quisiera saber si hay", "me podrias decir si tienen", "me puedes decir si tienen",
-        "tienen", "tiene", "tenes", "tenés", "hay", "disponible", "disponibles",
-        "busco", "buscar", "necesito", "quiero", "quisiera", "deseo",
-        "precio", "precios", "cuanto cuesta", "cuanto vale", "cuesta", "vale",
-        "en existencia", "existencia", "stock",
-        "de", "del", "la", "el", "los", "las", "un", "una", "unos", "unas",
-        "por", "favor", "porfa", "me", "te", "se", "si", "y", "o", "para", "con"
-    )
-    patron_relleno = r"\b(?:" + "|".join(sorted(palabras_relleno, key=len, reverse=True)) + r")\b"
-    consulta = re.sub(patron_relleno, " ", consulta)
-    consulta = re.sub(r"\s+", " ", consulta).strip()
+    palabras = [p for p in sin_signos.split() if p not in relleno]
+    consulta = " ".join(palabras).strip()
 
-    # Si tras quitar palabras de consulta solo queda un saludo o queda vacío, saluda
+    # Si tras quitar palabras de consulta solo queda un saludo o nada, envía la bienvenida
     if not consulta or consulta in saludos:
         return MENSAJE_BIENVENIDA, None
 
     return None, consulta
-
 
 def _a_numero(valor, por_defecto=0.0) -> float:
     if valor is None:
