@@ -456,13 +456,40 @@ async def recibir_webhook(request: Request):
                                 "Por favor intenta de nuevo en unos minutos o escribe *asesor* "
                                 "para hablar con nuestro equipo."
                             )
-                         else:
-                     respuesta = responder_consulta_productos(termino)
-                     enviar_mensaje_whatsapp(remitente, respuesta)
+                        else:
+                        respuesta = responder_consulta_productos(termino)
+                        enviar_mensaje_whatsapp(remitente, respuesta)
+
+                    elif tipo == "audio":
+                        media_id = ((msg.get("audio") or {}).get("id") or "").strip()
+                        audio_bytes, mime_type = descargar_audio_whatsapp(media_id)
+                        texto_audio = transcribir_audio_gemini(audio_bytes, mime_type) if audio_bytes else ""
+
+                        if not texto_audio:
+                            enviar_mensaje_whatsapp(
+                                remitente,
+                                "No logré escuchar bien el audio. Por favor intenta de nuevo, "
+                                "escribe el nombre del producto o escribe *asesor* para ayudarte."
+                            )
+                        else:
+                            respuesta_directa, termino = procesar_mensaje_usuario(texto_audio)
+                            if respuesta_directa:
+                                enviar_mensaje_whatsapp(remitente, respuesta_directa)
+                            elif not INVENTARIO:
+                                enviar_mensaje_whatsapp(
+                                    remitente,
+                                    "El inventario de la farmacia aún se está sincronizando. "
+                                    "Por favor intenta de nuevo en unos minutos o escribe *asesor* "
+                                    "para hablar con nuestro equipo."
+                                )
+                            else:
+                                respuesta = responder_consulta_productos(termino)
+                                enviar_mensaje_whatsapp(remitente, respuesta)
+
                     else:
                         enviar_mensaje_whatsapp(
                             remitente,
-                            "Por el momento solo puedo leer mensajes de texto. "
+                            "Por el momento solo puedo leer mensajes de texto o notas de voz. "
                             "Escríbeme el nombre del producto que buscas o escribe *asesor* "
                             "para hablar con nuestro equipo."
                         )
