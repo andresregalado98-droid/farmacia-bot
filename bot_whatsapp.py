@@ -150,14 +150,26 @@ def _a_numero(valor, por_defecto=0.0) -> float:
         return por_defecto
 
 
-def buscar_productos(termino: str, limite: int = 8) -> list:
+ def buscar_productos(termino: str, limite: int = 8) -> list:
     termino_norm = _normalizar(termino)
+    termino_norm = re.sub(r"(\d+)([a-z]+)", r"\1 \2", termino_norm)
+    termino_norm = re.sub(r"([a-z]+)(\d+)", r"\1 \2", termino_norm)
+    termino_norm = re.sub(r"\s+", " ", termino_norm).strip()
+
     if not termino_norm or not INVENTARIO:
         return []
 
-    palabras = [p for p in termino_norm.split() if len(p) >= 2]
+    ignorar = {
+        "para", "uso", "de", "del", "la", "el", "los", "las",
+        "adulto", "adultos", "adulta", "adultas",
+        "pediatrico", "pediatricos", "pediatrica", "pediatricas",
+        "infantil", "infantiles",
+        "nino", "ninos", "nina", "ninas"
+    }
+
+    palabras = [p for p in termino_norm.split() if len(p) >= 1 and p not in ignorar]
     if not palabras:
-        palabras = [termino_norm]
+        palabras = [p for p in termino_norm.split() if len(p) >= 1] or [termino_norm]
 
     coincidencias = []
     for item in INVENTARIO:
@@ -169,6 +181,8 @@ def buscar_productos(termino: str, limite: int = 8) -> list:
             or ""
         ).strip()
         desc_norm = _normalizar(desc)
+        desc_norm = re.sub(r"(\d+)([a-z]+)", r"\1 \2", desc_norm)
+        desc_norm = re.sub(r"([a-z]+)(\d+)", r"\1 \2", desc_norm)
         codigo_norm = _normalizar(codigo)
 
         if all(pal in desc_norm or pal in codigo_norm for pal in palabras):
