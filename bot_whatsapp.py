@@ -186,7 +186,30 @@ def  formatear_respuesta_productos(termino: str, productos: list) -> str:
     lineas.append(f"\n{MENSAJE_DESPEDIDA}")
     texto_final = "\n".join(lineas)
     return texto_final[:3800]
+def enviar_mensaje_whatsapp(telefono_destino: str, mensaje: str):
+    token = (os.getenv("WHATSAPP_TOKEN") or "").strip()
+    phone_number_id = (os.getenv("PHONE_NUMBER_ID") or "").strip()
+    if not token or not phone_number_id:
+        print("[WARN] Faltan WHATSAPP_TOKEN o PHONE_NUMBER_ID en variables de entorno.")
+        return
 
+    url = f"https://graph.facebook.com/v21.0/{phone_number_id}/messages"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": telefono_destino,
+        "type": "text",
+        "text": {"body": mensaje},
+    }
+    try:
+        resp = requests.post(url, headers=headers, json=payload, timeout=20)
+        if resp.status_code >= 400:
+            print(f"[ERROR] WhatsApp API {resp.status_code}: {resp.text}")
+    except Exception as e:
+        print(f"[ERROR] Enviando mensaje a WhatsApp: {e}")
 
 @app.post("/webhook")
 async def recibir_webhook(request: Request):
