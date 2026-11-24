@@ -171,7 +171,10 @@ def  formatear_respuesta_productos(termino: str, productos: list) -> str:
             f"{MENSAJE_DESPEDIDA}"
         )
 
-    lineas = [f"Resultados para *{termino}*:\n"]
+    lineas = [
+        f"{MENSAJE_BIENVENIDA}\n",
+        f"Resultados para *{termino}*:\n",
+    ]
     for p in productos[:5]:
         usd = float(p.get("usd") or 0.0)
         bs = float(p.get("bs") or 0.0)
