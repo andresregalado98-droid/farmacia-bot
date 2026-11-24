@@ -153,8 +153,7 @@ def _a_numero(valor, por_defecto=0.0) -> float:
     except ValueError:
         return por_defecto
 
-
- def buscar_productos(termino: str, limite: int = 8) -> list:
+def buscar_productos(termino: str, limite: int = 8) -> list:
     termino_norm = _normalizar(termino)
     termino_norm = re.sub(r"(\d+)([a-z]+)", r"\1 \2", termino_norm)
     termino_norm = re.sub(r"([a-z]+)(\d+)", r"\1 \2", termino_norm)
