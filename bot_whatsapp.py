@@ -24,7 +24,6 @@ MENSAJE_ASESOR = (
     "(RIF: *J-298120886*) para ayudarte."
 )
 
-# Inventario y tasa guardados en memoria
 INVENTARIO = []
 TASA_BS = 0.0
 
@@ -63,7 +62,6 @@ def procesar_mensaje_usuario(texto: str):
     if sin_comas in ("asesor", "humano", "agente", "persona"):
         return MENSAJE_ASESOR, None
 
-    # Quita saludos repetidos al inicio (ej. "buen dia tienen...", "hola buenos dias busco...")
     frase = sin_signos
     cambio = True
     while cambio and frase:
@@ -93,7 +91,6 @@ def procesar_mensaje_usuario(texto: str):
         "te", "se", "para", "con", "algun", "algún", "alguna", "algunos", "algunas"
     }
 
-    # Divide por coma, punto y coma, salto de línea o " y " / " e "
     segmentos_crudos = re.split(r"[,;\n]+|\s+(?:y|e)\s+", frase)
     terminos = []
 
@@ -111,36 +108,6 @@ def procesar_mensaje_usuario(texto: str):
 
     return None, terminos
 
-
-def responder_consulta_productos(termino_o_lista) -> str:
-    terminos = termino_o_lista if isinstance(termino_o_lista, list) else [termino_o_lista]
-
-    if len(terminos) == 1:
-        termino = terminos[0]
-        encontrados = buscar_productos(termino)
-        return formatear_respuesta_productos(termino, encontrados)
-
-    bloques = [f"{MENSAJE_BIENVENIDA}\n"]
-    for term in terminos:
-        encontrados = buscar_productos(term)
-        bloques.append(f"*Consulta: {term}*")
-        if not encontrados:
-            bloques.append(f"No encontré resultados para *{term}* en este momento.\n")
-        else:
-            for p in encontrados[:4]:
-                usd = float(p.get("usd") or 0.0)
-                bs = float(p.get("bs") or 0.0)
-                cop = float(p.get("cop") or 0.0)
-                desc = str(p.get("descripcion") or "Producto")
-                codigo = str(p.get("codigo") or "N/A")
-                bloques.append(
-                    f"• *{desc}* (Cód: {codigo})\n"
-                    f"  USD: ${usd:.2f} | Bs. {bs:,.2f} | COP {cop:,.0f}"
-                )
-            bloques.append("")
-
-    bloques.append(MENSAJE_DESPEDIDA)
-    return "\n".join(bloques)[:3800]
 
 def _a_numero(valor, por_defecto=0.0) -> float:
     if valor is None:
@@ -208,7 +175,7 @@ def buscar_productos(termino: str, limite: int = 8) -> list:
     return coincidencias
 
 
-def  formatear_respuesta_productos(termino: str, productos: list) -> str:
+def formatear_respuesta_productos(termino: str, productos: list) -> str:
     if not productos:
         return (
             f"No encontré resultados para *{termino}* en este momento. "
@@ -234,6 +201,39 @@ def  formatear_respuesta_productos(termino: str, productos: list) -> str:
     lineas.append(f"\n{MENSAJE_DESPEDIDA}")
     texto_final = "\n".join(lineas)
     return texto_final[:3800]
+
+
+def responder_consulta_productos(termino_o_lista) -> str:
+    terminos = termino_o_lista if isinstance(termino_o_lista, list) else [termino_o_lista]
+
+    if len(terminos) == 1:
+        termino = terminos[0]
+        encontrados = buscar_productos(termino)
+        return formatear_respuesta_productos(termino, encontrados)
+
+    bloques = [f"{MENSAJE_BIENVENIDA}\n"]
+    for term in terminos:
+        encontrados = buscar_productos(term)
+        bloques.append(f"*Consulta: {term}*")
+        if not encontrados:
+            bloques.append(f"No encontré resultados para *{term}* en este momento.\n")
+        else:
+            for p in encontrados[:4]:
+                usd = float(p.get("usd") or 0.0)
+                bs = float(p.get("bs") or 0.0)
+                cop = float(p.get("cop") or 0.0)
+                desc = str(p.get("descripcion") or "Producto")
+                codigo = str(p.get("codigo") or "N/A")
+                bloques.append(
+                    f"• *{desc}* (Cód: {codigo})\n"
+                    f"  USD: ${usd:.2f} | Bs. {bs:,.2f} | COP {cop:,.0f}"
+                )
+            bloques.append("")
+
+    bloques.append(MENSAJE_DESPEDIDA)
+    return "\n".join(bloques)[:3800]
+
+
 def enviar_mensaje_whatsapp(telefono_destino: str, mensaje: str):
     token = (os.getenv("WHATSAPP_TOKEN") or "").strip()
     phone_number_id = (os.getenv("PHONE_NUMBER_ID") or "").strip()
@@ -259,56 +259,8 @@ def enviar_mensaje_whatsapp(telefono_destino: str, mensaje: str):
     except Exception as e:
         print(f"[ERROR] Enviando mensaje a WhatsApp: {e}")
 
-@app.post("/webhook")
-async def recibir_webhook(request: Request):
-    try:
-        body = await request.json()
-    except Exception:
-        return {"status": "ignored"}
 
-    for entry in body.get("entry", []):
-        for change in entry.get("changes", []):
-            value = change.get("value", {})
-            for msg in value.get("messages", []):
-                remitente = msg.get("from")
-                tipo = msg.get("type")
-
-                if not remitente:
-                    continue
-
-                try:
-                    if tipo == "text":
-                        texto_usuario = (msg.get("text") or {}).get("body", "")
-                        respuesta_directa, termino = procesar_mensaje_usuario(texto_usuario)
-
-                        if respuesta_directa:
-                            enviar_mensaje_whatsapp(remitente, respuesta_directa)
-                        elif not INVENTARIO:
-                            enviar_mensaje_whatsapp(
-                                remitente,
-                                "El inventario de la farmacia aún se está sincronizando. "
-                                "Por favor intenta de nuevo en unos minutos o escribe *asesor* "
-                                "para hablar con nuestro equipo."
-                            )
-                       else:
-                            respuesta = responder_consulta_productos(termino)
-                            enviar_mensaje_whatsapp(remitente, respuesta)
-                    else:
-                        enviar_mensaje_whatsapp(
-                            remitente,
-                            "Por el momento solo puedo leer mensajes de texto. "
-                            "Escríbeme el nombre del producto que buscas o escribe *asesor* "
-                            "para hablar con nuestro equipo."
-                        )
-                except Exception as e:
-                    print(f"[ERROR] Procesando mensaje de {remitente}: {e}")
-                    enviar_mensaje_whatsapp(
-                        remitente,
-                        "Tuve un inconveniente al consultar ese producto. "
-                        "Por favor intenta escribiendo solo el nombre del medicamento o *asesor*."
-                    )
-
-    return {"status": "ok"}
+@app.get("/")
 def inicio():
     return {
         "status": "ok",
