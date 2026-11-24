@@ -458,7 +458,7 @@ async def recibir_webhook(request: Request):
                             )
                         else:
                         respuesta = responder_consulta_productos(termino)
-                        enviar_mensaje_whatsapp(remitente, respuesta)
+                                    enviar_mensaje_whatsapp(remitente, respuesta)
 
                     elif tipo == "audio":
                         media_id = ((msg.get("audio") or {}).get("id") or "").strip()
