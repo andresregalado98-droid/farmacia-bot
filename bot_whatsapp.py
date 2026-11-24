@@ -163,7 +163,7 @@ def buscar_productos(termino: str, limite: int = 8) -> list:
     return coincidencias
 
 
-def def formatear_respuesta_productos(termino: str, productos: list) -> str:
+def  formatear_respuesta_productos(termino: str, productos: list) -> str:
     if not productos:
         return (
             f"No encontré resultados para *{termino}* en este momento. "
