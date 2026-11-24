@@ -34,7 +34,7 @@ def _normalizar(texto: str) -> str:
     return re.sub(r"\s+", " ", texto).strip().lower()
 
 
-def procesar_mensaje_usuario(texto: str):
+def def procesar_mensaje_usuario(texto: str):
     texto_limpio = (texto or "").strip()
     if not texto_limpio:
         return MENSAJE_BIENVENIDA, None
@@ -79,18 +79,19 @@ def procesar_mensaje_usuario(texto: str):
     }
 
     terminos = []
-    lineas_norm = _normalizar(texto_limpio).splitlines()
+    # Se separa por salto de línea ANTES de normalizar para conservar cada fila de la lista
+    for linea_cruda in texto_limpio.splitlines():
+        linea_norm = _normalizar(linea_cruda)
+        if not linea_norm:
+            continue
 
-    for linea in lineas_norm:
-        # Quita viñetas o numeración inicial (ej. "- ", "* ", "• ", "1. ", "1) ")
-        linea_limpia = re.sub(r"^\s*(?:[-*•]+|\d+[.)])\s*", " ", linea)
+        linea_limpia = re.sub(r"^\s*(?:[-*•]+|\d+[.)])\s*", " ", linea_norm)
         linea_limpia = re.sub(r"[^\w\s,;]", " ", linea_limpia)
         linea_limpia = re.sub(r"\s+", " ", linea_limpia).strip()
 
         if not linea_limpia:
             continue
 
-        # Quita saludos al inicio de la línea (ej. "buenos dias tienen...")
         cambio = True
         while cambio and linea_limpia:
             cambio = False
@@ -106,7 +107,6 @@ def procesar_mensaje_usuario(texto: str):
         if not linea_limpia:
             continue
 
-        # Divide por comas, punto y coma o conectores "y" / "e"
         partes = re.split(r"[,;]+|\s+(?:y|e)\s+", linea_limpia)
         for parte in partes:
             palabras = [p for p in parte.split() if p not in relleno]
