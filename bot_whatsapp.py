@@ -60,6 +60,9 @@ TASA_BS = 0.0
 SESIONES_UNITY = {}
 TIMEOUT_UNITY_SEGUNDOS = 20 * 60
 
+MENSAJES_PROCESADOS = {}
+TTL_MENSAJES_SEGUNDOS = 300
+
 PALABRAS_CONTROLADOS_Y_ANTIBIOTICOS = {
     # Categorías regulatorias y control
     "antibiotico", "antibioticos", "antimicrobiano", "antimicrobianos",
@@ -96,6 +99,23 @@ def _normalizar(texto: str) -> str:
     texto = unicodedata.normalize("NFKD", texto or "")
     texto = "".join(c for c in texto if not unicodedata.combining(c))
     return re.sub(r"\s+", " ", texto).strip().lower()
+
+
+def _ya_procesado(msg_id: str) -> bool:
+    if not msg_id:
+        return False
+    ahora = time.time()
+    expirados = [
+        mid for mid, ts in MENSAJES_PROCESADOS.items()
+        if ahora - ts > TTL_MENSAJES_SEGUNDOS
+    ]
+    for mid in expirados:
+        MENSAJES_PROCESADOS.pop(mid, None)
+
+    if msg_id in MENSAJES_PROCESADOS:
+        return True
+    MENSAJES_PROCESADOS[msg_id] = ahora
+    return False
 
 
 def _limpiar_sesiones_expiradas():
@@ -392,7 +412,7 @@ def _buscar_contexto_inventario_para_unity(consulta: str) -> str:
     return "Productos encontrados en el inventario actual de Farmacia Unitas Norte:\n" + "\n".join(resultados[:6])
 
 
-def _llamar_gemini_con_reintentos(payload: dict, timeout: int = 30, max_reintentos: int = 3) -> dict:
+def _llamar_gemini_con_reintentos(payload: dict, timeout: int = 20, max_reintentos: int = 2) -> dict:
     api_key = (os.getenv("GEMINI_API_KEY") or "").strip()
     if not api_key:
         raise RuntimeError("Falta GEMINI_API_KEY")
@@ -412,7 +432,7 @@ def _llamar_gemini_con_reintentos(payload: dict, timeout: int = 30, max_reintent
                     response=resp,
                 )
                 if intento < max_reintentos - 1:
-                    time.sleep(1.5 * (intento + 1))
+                    time.sleep(0.8)
                     continue
                 raise ultimo_error
             resp.raise_for_status()
@@ -420,7 +440,7 @@ def _llamar_gemini_con_reintentos(payload: dict, timeout: int = 30, max_reintent
         except (requests.Timeout, requests.ConnectionError, requests.HTTPError) as exc:
             ultimo_error = exc
             if intento < max_reintentos - 1:
-                time.sleep(1.5 * (intento + 1))
+                time.sleep(0.8)
                 continue
             raise
 
@@ -434,7 +454,7 @@ def consultar_asistente_unity(remitente: str, mensaje_usuario: str) -> str:
     api_key = (os.getenv("GEMINI_API_KEY") or "").strip()
     if not api_key:
         return (
-            "En este momento el asistente *Unity* no está disponible. "
+            "En este momento *Unity* no está disponible. "
             "Escribe *asesor* para hablar con nuestro equipo o *salir* para buscar productos."
         )
 
@@ -471,20 +491,26 @@ def consultar_asistente_unity(remitente: str, mensaje_usuario: str) -> str:
         "contents": contents,
         "generationConfig": {
             "temperature": 0.35,
-            "maxOutputTokens": 1024,
+            "maxOutputTokens": 900,
         },
     }
 
-    data = _llamar_gemini_con_reintentos(payload, timeout=30, max_reintentos=3)
-    print(f"[DEBUG UNITY RAW] {str(data)[:1200]}")
+    try:
+        data = _llamar_gemini_con_reintentos(payload, timeout=20, max_reintentos=2)
+    except Exception as e:
+        print(f"[ERROR UNITY API] {e}")
+        return (
+            "La línea con el asistente *Unity* está un poco lenta en este momento. "
+            "Puedes volver a intentar tu consulta o escribir *asesor* para que te atienda nuestro equipo."
+        )
 
     candidatos = data.get("candidates") or []
     if not candidatos:
         bloqueo = (data.get("promptFeedback") or {}).get("blockReason")
         print(f"[WARN UNITY] Sin candidatos. blockReason={bloqueo}")
         return (
-            "No pude generar una respuesta en este momento. "
-            "Por favor reformula tu consulta o escribe *asesor* para hablar con nuestro equipo."
+            "Por normativa y seguridad, no pude procesar esa consulta de forma automática. "
+            "Escribe *asesor* para hablar con nuestro equipo o *salir* para volver al buscador."
         )
 
     cand0 = candidatos[0]
@@ -498,8 +524,8 @@ def consultar_asistente_unity(remitente: str, mensaje_usuario: str) -> str:
     if not respuesta_texto:
         print(f"[WARN UNITY] Texto vacío. finishReason={fin} partes={partes}")
         return (
-            "No pude generar una respuesta en este momento. "
-            "Por favor reformula tu consulta o escribe *asesor* para hablar con nuestro equipo."
+            "No pude completar esa orientación ahora mismo. "
+            "Intenta formularla de otra forma o escribe *asesor* para atención directa."
         )
 
     historial.append({"role": "user", "text": mensaje_usuario.strip()})
@@ -516,7 +542,7 @@ def descargar_audio_whatsapp(media_id: str):
 
     headers = {"Authorization": f"Bearer {token}"}
     meta_url = f"https://graph.facebook.com/v21.0/{media_id}"
-    resp_meta = requests.get(meta_url, headers=headers, timeout=20)
+    resp_meta = requests.get(meta_url, headers=headers, timeout=15)
     resp_meta.raise_for_status()
     info = resp_meta.json()
 
@@ -525,7 +551,7 @@ def descargar_audio_whatsapp(media_id: str):
     if not download_url:
         return None, None
 
-    resp_audio = requests.get(download_url, headers=headers, timeout=30)
+    resp_audio = requests.get(download_url, headers=headers, timeout=20)
     resp_audio.raise_for_status()
     return resp_audio.content, mime_type
 
@@ -556,14 +582,17 @@ def transcribir_audio_gemini(audio_bytes: bytes, mime_type: str = "audio/ogg") -
             }
         ]
     }
-    data = _llamar_gemini_con_reintentos(payload, timeout=30, max_reintentos=3)
+    try:
+        data = _llamar_gemini_con_reintentos(payload, timeout=20, max_reintentos=2)
+    except Exception as e:
+        print(f"[ERROR AUDIO API] {e}")
+        return ""
 
     candidatos = data.get("candidates") or []
     if not candidatos:
         return ""
     partes = ((candidatos[0].get("content") or {}).get("parts")) or []
-    texto = " ".join(p.get("text", "") for p in partes if p.get("text")).strip()
-    return texto
+    return " ".join(p.get("text", "") for p in partes if p.get("text")).strip()
 
 
 def enviar_mensaje_whatsapp(telefono_destino: str, mensaje: str):
@@ -585,7 +614,7 @@ def enviar_mensaje_whatsapp(telefono_destino: str, mensaje: str):
         "text": {"body": mensaje},
     }
     try:
-        resp = requests.post(url, headers=headers, json=payload, timeout=20)
+        resp = requests.post(url, headers=headers, json=payload, timeout=15)
         if resp.status_code >= 400:
             print(f"[ERROR] WhatsApp API {resp.status_code}: {resp.text}")
     except Exception as e:
@@ -616,15 +645,7 @@ def _manejar_texto_entrante(remitente: str, texto_usuario: str):
                 enviar_mensaje_whatsapp(remitente, MENSAJE_SALIDA_UNITY)
             return
 
-        try:
-            respuesta_unity = consultar_asistente_unity(remitente, texto_limpio)
-        except Exception as e:
-            print(f"[ERROR] Consultando Unity para {remitente}: {e}")
-            respuesta_unity = (
-                "Tuve un inconveniente temporal con *Unity*. "
-                "Intenta de nuevo en unos segundos, escribe *asesor* para hablar con nuestro equipo "
-                "o *salir* para volver al buscador."
-            )
+        respuesta_unity = consultar_asistente_unity(remitente, texto_limpio)
         enviar_mensaje_whatsapp(remitente, respuesta_unity)
         return
 
@@ -723,6 +744,10 @@ async def recibir_webhook(request: Request):
         for change in entry.get("changes", []):
             value = change.get("value", {})
             for msg in value.get("messages", []):
+                msg_id = str(msg.get("id") or "").strip()
+                if _ya_procesado(msg_id):
+                    continue
+
                 remitente = msg.get("from")
                 tipo = msg.get("type")
 
@@ -736,18 +761,12 @@ async def recibir_webhook(request: Request):
 
                     elif tipo == "audio":
                         media_id = ((msg.get("audio") or {}).get("id") or "").strip()
-                        try:
-                            if not (os.getenv("GEMINI_API_KEY") or "").strip():
-                                print("[ERROR] Falta GEMINI_API_KEY en variables de entorno.")
-                                texto_audio = ""
-                            else:
-                                audio_bytes, mime_type = descargar_audio_whatsapp(media_id)
-                                print(f"[DEBUG] Audio {media_id} mime={mime_type} bytes={len(audio_bytes) if audio_bytes else 0}")
-                                texto_audio = transcribir_audio_gemini(audio_bytes, mime_type) if audio_bytes else ""
-                                print(f"[DEBUG] Transcripcion: {texto_audio!r}")
-                        except Exception as e:
-                            print(f"[ERROR] Procesando audio {media_id}: {e}")
+                        if not (os.getenv("GEMINI_API_KEY") or "").strip():
+                            print("[ERROR] Falta GEMINI_API_KEY en variables de entorno.")
                             texto_audio = ""
+                        else:
+                            audio_bytes, mime_type = descargar_audio_whatsapp(media_id)
+                            texto_audio = transcribir_audio_gemini(audio_bytes, mime_type) if audio_bytes else ""
 
                         if not texto_audio:
                             enviar_mensaje_whatsapp(
@@ -767,10 +786,5 @@ async def recibir_webhook(request: Request):
                         )
                 except Exception as e:
                     print(f"[ERROR] Procesando mensaje de {remitente}: {e}")
-                    enviar_mensaje_whatsapp(
-                        remitente,
-                        "Tuve un inconveniente al procesar tu mensaje. "
-                        "Por favor intenta de nuevo o escribe *asesor*."
-                    )
 
     return {"status": "ok"}
