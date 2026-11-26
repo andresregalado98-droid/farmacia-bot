@@ -464,7 +464,7 @@ async def recibir_webhook(request: Request):
                             respuesta = responder_consulta_productos(termino)
                             enviar_mensaje_whatsapp(remitente, respuesta)
 
-                          elif tipo == "audio":
+                    elif tipo == "audio":
                         media_id = ((msg.get("audio") or {}).get("id") or "").strip()
                         try:
                             if not (os.getenv("GEMINI_API_KEY") or "").strip():
@@ -499,6 +499,7 @@ async def recibir_webhook(request: Request):
                             else:
                                 respuesta = responder_consulta_productos(termino)
                                 enviar_mensaje_whatsapp(remitente, respuesta)
+
                     else:
                         enviar_mensaje_whatsapp(
                             remitente,
