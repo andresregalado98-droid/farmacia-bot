@@ -36,10 +36,10 @@ MENSAJE_BIENVENIDA_UNITY = (
     "¡Hola! Soy *Unity*, el asistente virtual de orientación de *Farmacia Unitas Norte* (RIF: *J-298120886*).\n\n"
     "Puedo ayudarte con:\n"
     "• Orientación informativa general sobre malestares leves o síntomas comunes.\n"
-    "• Información general de uso de medicamentos de venta libre.\n"
+    "• Información general de uso de medicamentos sencillos de venta libre.\n"
     "• Consulta de disponibilidad y precios en nuestro inventario.\n\n"
     "⚠️ *Normativa sanitaria (MPPS / Ley Orgánica de Drogas):* Los *estupefacientes*, *psicotrópicos*, *medicamentos controlados*, *antibióticos* y fármacos de prescripción médica deben ser indicados estrictamente por un *médico* y dispensados conforme a la normativa vigente.\n\n"
-    "¿Qué malestar leve o producto deseas consultar?\n"
+    "¿Qué malestar leve o producto sencillo deseas consultar?\n"
     "_(Escribe *salir* para volver al buscador de productos o *asesor* para hablar con nuestro equipo)_."
 )
 
@@ -471,22 +471,32 @@ def consultar_asistente_unity(remitente: str, mensaje_usuario: str) -> str:
         "contents": contents,
         "generationConfig": {
             "temperature": 0.35,
-            "maxOutputTokens": 450,
+            "maxOutputTokens": 1024,
         },
     }
 
     data = _llamar_gemini_con_reintentos(payload, timeout=30, max_reintentos=3)
+    print(f"[DEBUG UNITY RAW] {str(data)[:1200]}")
 
     candidatos = data.get("candidates") or []
     if not candidatos:
+        bloqueo = (data.get("promptFeedback") or {}).get("blockReason")
+        print(f"[WARN UNITY] Sin candidatos. blockReason={bloqueo}")
         return (
             "No pude generar una respuesta en este momento. "
             "Por favor reformula tu consulta o escribe *asesor* para hablar con nuestro equipo."
         )
 
-    partes = ((candidatos[0].get("content") or {}).get("parts")) or []
-    respuesta_texto = " ".join(p.get("text", "") for p in partes if p.get("text")).strip()
+    cand0 = candidatos[0]
+    fin = cand0.get("finishReason")
+    partes = ((cand0.get("content") or {}).get("parts")) or []
+    respuesta_texto = " ".join(
+        p.get("text", "") for p in partes
+        if isinstance(p, dict) and p.get("text") and not p.get("thought")
+    ).strip()
+
     if not respuesta_texto:
+        print(f"[WARN UNITY] Texto vacío. finishReason={fin} partes={partes}")
         return (
             "No pude generar una respuesta en este momento. "
             "Por favor reformula tu consulta o escribe *asesor* para hablar con nuestro equipo."
