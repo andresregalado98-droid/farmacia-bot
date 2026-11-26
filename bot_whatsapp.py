@@ -10,49 +10,50 @@ from fastapi.responses import PlainTextResponse
 app = FastAPI()
 
 MENSAJE_BIENVENIDA = (
-    "¡Hola! Bienvenido a *Farmacia Unitas Norte* (RIF: *J-298120886*).\n"
-    "Escríbeme el nombre del medicamento o producto que deseas consultar.\n"
-    "• Si quieres orientación general sobre un malestar leve o cómo usar un producto sencillo, escribe *Unity* para hablar con nuestro asistente virtual.\n"
-    "• Si necesitas atención personalizada, escribe *asesor* y nuestro equipo te atenderá."
+    "¡Hola! 👋 Bienvenido a *Farmacia Unitas Norte* (RIF: *J-298120886*) 🏥✨.\n"
+    "Escríbeme el nombre del medicamento o producto que deseas consultar 💊🔍.\n"
+    "• Si quieres orientación amigable sobre un malestar leve o opciones de venta libre, escribe *Unity* para hablar con nuestro asistente virtual 🩺💬.\n"
+    "• Si necesitas atención personalizada, escribe *asesor* y nuestro equipo te atenderá con gusto 👩‍⚕️🤝."
 )
 
 MENSAJE_BIENVENIDA_PRODUCTO = (
-    "¡Hola! Gracias por escribir a *Farmacia Unitas Norte* (RIF: *J-298120886*).\n"
+    "¡Hola! 👋 Gracias por escribir a *Farmacia Unitas Norte* (RIF: *J-298120886*) 🏥✨.\n"
 )
 
 MENSAJE_DESPEDIDA = (
-    "¡Gracias por preferir a *Farmacia Unitas Norte* (RIF: *J-298120886*)! "
-    "Estamos a tu orden. Si deseas consultar otro producto, solo escríbeme su nombre, "
-    "escribe *Unity* para consultar a nuestro asistente virtual, "
-    "o escribe *asesor* y serás atendido por nuestro personal. ¡Que tengas un excelente día!"
+    "¡Gracias por preferir a *Farmacia Unitas Norte* (RIF: *J-298120886*)! 💙✨\n"
+    "📍 *Ubicación:* Calle 5 entre carreras 11 y 12 de La Concordia, media cuadra bajando del Hospital Central.\n\n"
+    "Estamos siempre a tu orden 🙌. Si deseas consultar otro producto, solo escríbeme su nombre 💊, "
+    "escribe *Unity* para consultar a nuestro asistente virtual 🩺, "
+    "o escribe *asesor* y serás atendido por nuestro personal 👩‍⚕️. ¡Que tengas un excelente día! ☀️😊"
 )
 
 MENSAJE_ASESOR = (
     "En un momento te comunicaremos con un asesor de *Farmacia Unitas Norte* "
-    "(RIF: *J-298120886*) para ayudarte."
+    "(RIF: *J-298120886*) para ayudarte 👩‍⚕️💬."
 )
 
 MENSAJE_BIENVENIDA_UNITY = (
-    "¡Hola! Soy *Unity*, el asistente virtual de orientación de *Farmacia Unitas Norte* (RIF: *J-298120886*).\n\n"
+    "¡Hola! 😊 Soy *Unity*, tu asistente virtual de orientación en *Farmacia Unitas Norte* (RIF: *J-298120886*).\n\n"
     "Puedo ayudarte con:\n"
-    "• Orientación informativa general sobre malestares leves o síntomas comunes.\n"
-    "• Información general de uso de medicamentos sencillos de venta libre.\n"
-    "• Consulta de disponibilidad y precios en nuestro inventario.\n\n"
-    "⚠️ *Normativa sanitaria (MPPS / Ley Orgánica de Drogas):* Los *estupefacientes*, *psicotrópicos*, *medicamentos controlados*, *antibióticos* y fármacos de prescripción médica deben ser indicados estrictamente por un *médico* y dispensados conforme a la normativa vigente.\n\n"
-    "¿Qué malestar leve o producto sencillo deseas consultar?\n"
-    "_(Escribe *salir* para volver al buscador de productos o *asesor* para hablar con nuestro equipo)_."
+    "• Orientación amigable sobre malestares comunes leves 🩺\n"
+    "• Opciones habituales de venta libre y cuidados generales 💊\n"
+    "• Revisión de disponibilidad, precios y ubicación de nuestra farmacia 🛒📍\n\n"
+    "⚠️ *Normativa sanitaria (MPPS / Ley Orgánica de Drogas):* Los *estupefacientes*, *psicotrópicos*, *medicamentos controlados*, *antibióticos* y fármacos sujetos a prescripción requieren evaluación e indicación estricta de un *médico* conforme a la normativa vigente.\n\n"
+    "¿Qué malestar te está molestando o qué producto quieres consultar hoy? 💬\n"
+    "_(Escribe *salir* para volver al buscador o *asesor* para hablar con nuestro equipo)_."
 )
 
 MENSAJE_SALIDA_UNITY = (
-    "Has salido del modo asistente *Unity*. "
-    "Ahora puedes escribir directamente el nombre del producto que deseas consultar o escribir *asesor*."
+    "Has salido del modo asistente *Unity* 👋. "
+    "Ahora puedes escribir directamente el nombre del producto que buscas o escribir *asesor* 💊."
 )
 
 MENSAJE_BLOQUEO_CONTROLADOS = (
     "⚠️ *Restricción sanitaria (MPPS / Ley Orgánica de Drogas):*\n"
-    "De acuerdo con la regulación farmacéutica vigente, *Unity* no puede recomendar, indicar ni dar pautas de uso o dosificación sobre *medicamentos controlados, estupefacientes, psicotrópicos ni antibióticos*.\n\n"
-    "Estos medicamentos requieren evaluación e indicación estricta de un *médico* y el cumplimiento de los requisitos de prescripción/dispensación establecidos.\n"
-    "Si deseas hablar con nuestro equipo de farmacia, escribe *asesor* (o escribe *salir* para volver al buscador)."
+    "Por regulación farmacéutica vigente, *Unity* no puede recomendar, indicar ni dar pautas de uso sobre *medicamentos controlados, estupefacientes, psicotrópicos ni antibióticos*.\n\n"
+    "Estos fármacos requieren valoración e indicación directa de un *médico* y cumplir con los requisitos de prescripción/dispensación establecidos.\n"
+    "Si deseas comunicarte con nuestro equipo, escribe *asesor* (o *salir* para volver al buscador)."
 )
 
 INVENTARIO = []
@@ -338,9 +339,9 @@ def formatear_respuesta_productos(termino: str, productos: list) -> str:
     if not productos:
         return (
             f"{MENSAJE_BIENVENIDA_PRODUCTO}"
-            f"No encontré resultados para *{termino}* en este momento. "
-            f"Verifica el nombre del producto, escribe *Unity* para orientarte con nuestro asistente virtual, "
-            f"o escribe *asesor* y pronto serás atendido por nuestro personal.\n\n"
+            f"No encontré resultados para *{termino}* en este momento 🔎. "
+            f"Verifica el nombre del producto, escribe *Unity* para orientarte con nuestro asistente virtual 🩺, "
+            f"o escribe *asesor* y pronto serás atendido por nuestro personal 👩‍⚕️.\n\n"
             f"{MENSAJE_DESPEDIDA}"
         )
 
@@ -468,14 +469,17 @@ def consultar_asistente_unity(remitente: str, mensaje_usuario: str) -> str:
     instrucciones_sistema = (
         "Eres Unity, el asistente virtual de orientación farmacéutica de Farmacia Unitas Norte (RIF: J-298120886) en Venezuela. "
         "Operas bajo los criterios generales de orientación sanitaria alineados con la normativa del Ministerio del Poder Popular para la Salud (MPPS) y la Ley Orgánica de Drogas en Venezuela. "
-        "Responde siempre en español, de forma clara, cercana, empática y concisa (ideal para WhatsApp, máximo 120-160 palabras, usando viñetas cortas y negritas simples con *asteriscos*).\n\n"
+        "Responde siempre en español con un tono ameno, cálido, cercano y útil para WhatsApp (unos 130-180 palabras), usando viñetas cortas, negritas simples con *asteriscos* y emoticones naturales donde aporten claridad (como 🩺, 💊, 💧, 🌿, 📍, ✨, ⚠️). "
+        "NUNCA uses expresiones como 'medicamentos sencillos' ni 'productos sencillos'.\n\n"
+        "UBICACIÓN DE LA FARMACIA:\n"
+        "- Si el usuario pregunta dónde queda, la dirección o cómo llegar a Farmacia Unitas Norte, respóndele con entusiasmo dando la dirección exacta: *Calle 5 entre carreras 11 y 12 de La Concordia, media cuadra bajando del Hospital Central* 📍, e incluye siempre este enlace directo de Google Maps: https://maps.app.goo.gl/4gkAosGHE3Swu4js5\n\n"
         "REGLAS NORMATIVAS Y DE SEGURIDAD:\n"
-        "1. NUNCA recomiendes, prescribas ni des dosis o pautas de uso de MEDICAMENTOS CONTROLADOS, ESTUPEFACIENTES, PSICOTRÓPICOS o ANTIBIÓTICOS, ni de fármacos sujetos a récipe médico. Si el usuario consulta sobre alguno, indica estrictamente que debe acudir a un médico y cumplir con los requisitos de prescripción/dispensación vigentes.\n"
-        "2. SÍ puedes ofrecer orientación informativa general sobre malestares leves o síntomas comunes y explicar el uso general de medicamentos sencillos de venta libre (sin diagnosticar ni sustituir la valoración médica).\n"
-        "3. Al explicar cómo se usa un medicamento de venta libre, entrega solo pautas generales orientativas y recuerda revisar el prospecto y consultar al médico o farmacéutico (especialmente en niños, embarazo, lactancia, adultos mayores o condiciones crónicas).\n"
-        "4. Si hay síntomas de alarma o gravedad, recomienda atención médica inmediata.\n"
-        "5. Si hay productos en el contexto de inventario y no están restringidos, puedes mencionarlos brevemente con su precio.\n"
-        "6. Cierra recordando brevemente que puede escribir *asesor* para atención personalizada o *salir* para volver al buscador."
+        "1. NUNCA recomiendes, prescribas ni des dosis o pautas de uso de MEDICAMENTOS CONTROLADOS, ESTUPEFACIENTES, PSICOTRÓPICOS o ANTIBIÓTICOS, ni de fármacos sujetos a récipe médico. Si el usuario consulta sobre alguno, indica con claridad que debe acudir a un médico y cumplir con los requisitos de prescripción/dispensación vigentes.\n"
+        "2. Ante malestares leves comunes (dolor de cabeza leve, malestar estomacal ocasional, acidez, congestión leve o cansancio), desarrolla una respuesta amena sugiriendo directamente opciones habituales de venta libre (OTC) y medidas generales de alivio (sin diagnosticar ni dar dosis fijas como consulta médica).\n"
+        "3. Al mencionar opciones de venta libre, recuerda revisar el prospecto y consultar al médico o farmacéutico, especialmente en niños, embarazo, lactancia, adultos mayores o condiciones crónicas.\n"
+        "4. Si hay señales de alarma o gravedad, recomienda buscar atención médica de inmediato.\n"
+        "5. Si hay productos en el contexto de inventario y no están restringidos, intégralos de forma natural con su precio.\n"
+        "6. Cierra de manera amable recordando que puede escribir *asesor* para atención personalizada o *salir* para volver al buscador."
     )
 
     prompt_usuario = mensaje_usuario.strip()
@@ -491,8 +495,8 @@ def consultar_asistente_unity(remitente: str, mensaje_usuario: str) -> str:
         "system_instruction": {"parts": [{"text": instrucciones_sistema}]},
         "contents": contents,
         "generationConfig": {
-            "temperature": 0.35,
-            "maxOutputTokens": 900,
+            "temperature": 0.45,
+            "maxOutputTokens": 950,
         },
     }
 
@@ -501,7 +505,7 @@ def consultar_asistente_unity(remitente: str, mensaje_usuario: str) -> str:
     except Exception as e:
         print(f"[ERROR UNITY API] {e}")
         return (
-            "La línea con el asistente *Unity* está un poco ocupada en este momento. "
+            "La línea con *Unity* está un poco ocupada en este momento 😊. "
             "Intenta de nuevo en unos segundos o escribe *asesor* para que te atienda nuestro equipo."
         )
 
@@ -510,7 +514,7 @@ def consultar_asistente_unity(remitente: str, mensaje_usuario: str) -> str:
         bloqueo = (data.get("promptFeedback") or {}).get("blockReason")
         print(f"[WARN UNITY] Sin candidatos. blockReason={bloqueo}")
         return (
-            "Por normativa y seguridad, no pude procesar esa consulta de forma automática. "
+            "Por normativa y seguridad, no pude procesar esa consulta de forma automática ⚠️. "
             "Escribe *asesor* para hablar con nuestro equipo o *salir* para volver al buscador."
         )
 
@@ -525,7 +529,7 @@ def consultar_asistente_unity(remitente: str, mensaje_usuario: str) -> str:
     if not respuesta_texto:
         print(f"[WARN UNITY] Texto vacío. finishReason={fin}")
         return (
-            "No pude completar esa orientación ahora mismo. "
+            "No pude completar esa orientación ahora mismo 😊. "
             "Intenta formularla de otra forma o escribe *asesor* para atención directa."
         )
 
@@ -656,9 +660,9 @@ def _manejar_texto_entrante(remitente: str, texto_usuario: str):
     elif not INVENTARIO:
         enviar_mensaje_whatsapp(
             remitente,
-            "El inventario de la farmacia aún se está sincronizando. "
-            "Por favor intenta de nuevo en unos minutos, escribe *Unity* para orientarte con nuestro asistente virtual, "
-            "o escribe *asesor* para hablar con nuestro equipo."
+            "El inventario de la farmacia aún se está sincronizando ⏳. "
+            "Por favor intenta de nuevo en unos minutos, escribe *Unity* para orientarte con nuestro asistente virtual 🩺, "
+            "o escribe *asesor* para hablar con nuestro equipo 👩‍⚕️."
         )
     else:
         respuesta = responder_consulta_productos(termino)
@@ -773,8 +777,8 @@ async def recibir_webhook(request: Request):
                         if not texto_audio:
                             enviar_mensaje_whatsapp(
                                 remitente,
-                                "No logré escuchar bien el audio. Por favor intenta de nuevo, "
-                                "escribe el nombre del producto o escribe *asesor* para ayudarte."
+                                "No logré escuchar bien el audio 🎙️. Por favor intenta de nuevo, "
+                                "escribe el nombre del producto o escribe *asesor* para ayudarte 👩‍⚕️."
                             )
                         else:
                             _manejar_texto_entrante(remitente, texto_audio)
@@ -782,9 +786,9 @@ async def recibir_webhook(request: Request):
                     else:
                         enviar_mensaje_whatsapp(
                             remitente,
-                            "Por el momento solo puedo leer mensajes de texto o notas de voz. "
-                            "Escríbeme el nombre del producto que buscas, escribe *Unity* para hablar con nuestro asistente virtual, "
-                            "o escribe *asesor* para hablar con nuestro equipo."
+                            "Por el momento solo puedo leer mensajes de texto o notas de voz 💬🎙️. "
+                            "Escríbeme el nombre del producto que buscas, escribe *Unity* para hablar con nuestro asistente virtual 🩺, "
+                            "o escribe *asesor* para hablar con nuestro equipo 👩‍⚕️."
                         )
                 except Exception as e:
                     print(f"[ERROR] Procesando mensaje de {remitente}: {e}")
