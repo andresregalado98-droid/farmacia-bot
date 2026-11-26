@@ -464,10 +464,20 @@ async def recibir_webhook(request: Request):
                             respuesta = responder_consulta_productos(termino)
                             enviar_mensaje_whatsapp(remitente, respuesta)
 
-                    elif tipo == "audio":
+                   elif tipo == "audio":
                         media_id = ((msg.get("audio") or {}).get("id") or "").strip()
-                        audio_bytes, mime_type = descargar_audio_whatsapp(media_id)
-                        texto_audio = transcribir_audio_gemini(audio_bytes, mime_type) if audio_bytes else ""
+                        try:
+                            if not (os.getenv("GEMINI_API_KEY") or "").strip():
+                                print("[ERROR] Falta GEMINI_API_KEY en variables de entorno.")
+                                texto_audio = ""
+                            else:
+                                audio_bytes, mime_type = descargar_audio_whatsapp(media_id)
+                                print(f"[DEBUG] Audio {media_id} mime={mime_type} bytes={len(audio_bytes) if audio_bytes else 0}")
+                                texto_audio = transcribir_audio_gemini(audio_bytes, mime_type) if audio_bytes else ""
+                                print(f"[DEBUG] Transcripcion: {texto_audio!r}")
+                        except Exception as e:
+                            print(f"[ERROR] Procesando audio {media_id}: {e}")
+                            texto_audio = ""
 
                         if not texto_audio:
                             enviar_mensaje_whatsapp(
