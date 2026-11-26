@@ -36,10 +36,10 @@ MENSAJE_BIENVENIDA_UNITY = (
     "¡Hola! Soy *Unity*, el asistente virtual de orientación de *Farmacia Unitas Norte* (RIF: *J-298120886*).\n\n"
     "Puedo ayudarte con:\n"
     "• Orientación informativa general sobre malestares leves o síntomas comunes.\n"
-    "• Información general de uso de medicamentos sencillos de venta libre.\n"
+    "• Información general de uso de medicamentos de venta libre.\n"
     "• Consulta de disponibilidad y precios en nuestro inventario.\n\n"
     "⚠️ *Normativa sanitaria (MPPS / Ley Orgánica de Drogas):* Los *estupefacientes*, *psicotrópicos*, *medicamentos controlados*, *antibióticos* y fármacos de prescripción médica deben ser indicados estrictamente por un *médico* y dispensados conforme a la normativa vigente.\n\n"
-    "¿Qué malestar leve o producto sencillo deseas consultar?\n"
+    "¿Qué malestar leve o producto deseas consultar?\n"
     "_(Escribe *salir* para volver al buscador de productos o *asesor* para hablar con nuestro equipo)_."
 )
 
