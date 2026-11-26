@@ -392,6 +392,41 @@ def _buscar_contexto_inventario_para_unity(consulta: str) -> str:
     return "Productos encontrados en el inventario actual de Farmacia Unitas Norte:\n" + "\n".join(resultados[:6])
 
 
+def _llamar_gemini_con_reintentos(payload: dict, timeout: int = 30, max_reintentos: int = 3) -> dict:
+    api_key = (os.getenv("GEMINI_API_KEY") or "").strip()
+    if not api_key:
+        raise RuntimeError("Falta GEMINI_API_KEY")
+
+    url = (
+        "https://generativelanguage.googleapis.com/v1beta/models/"
+        f"gemini-4-hydrogen:generateContent?key={api_key}"
+    )
+
+    ultimo_error = None
+    for intento in range(max_reintentos):
+        try:
+            resp = requests.post(url, json=payload, timeout=timeout)
+            if resp.status_code == 503 or resp.status_code >= 500:
+                ultimo_error = requests.HTTPError(
+                    f"{resp.status_code} Server Error for url: {url}",
+                    response=resp,
+                )
+                if intento < max_reintentos - 1:
+                    time.sleep(1.5 * (intento + 1))
+                    continue
+                raise ultimo_error
+            resp.raise_for_status()
+            return resp.json()
+        except (requests.Timeout, requests.ConnectionError, requests.HTTPError) as exc:
+            ultimo_error = exc
+            if intento < max_reintentos - 1:
+                time.sleep(1.5 * (intento + 1))
+                continue
+            raise
+
+    raise ultimo_error
+
+
 def consultar_asistente_unity(remitente: str, mensaje_usuario: str) -> str:
     if _contiene_medicamento_restringido(mensaje_usuario):
         return MENSAJE_BLOQUEO_CONTROLADOS
@@ -431,10 +466,6 @@ def consultar_asistente_unity(remitente: str, mensaje_usuario: str) -> str:
         contents.append({"role": turno["role"], "parts": [{"text": turno["text"]}]})
     contents.append({"role": "user", "parts": [{"text": prompt_usuario}]})
 
-    url = (
-        "https://generativelanguage.googleapis.com/v1beta/models/"
-        f"gemini-4-hydrogen:generateContent?key={api_key}"
-    )
     payload = {
         "system_instruction": {"parts": [{"text": instrucciones_sistema}]},
         "contents": contents,
@@ -444,9 +475,7 @@ def consultar_asistente_unity(remitente: str, mensaje_usuario: str) -> str:
         },
     }
 
-    resp = requests.post(url, json=payload, timeout=30)
-    resp.raise_for_status()
-    data = resp.json()
+    data = _llamar_gemini_con_reintentos(payload, timeout=30, max_reintentos=3)
 
     candidatos = data.get("candidates") or []
     if not candidatos:
@@ -497,10 +526,6 @@ def transcribir_audio_gemini(audio_bytes: bytes, mime_type: str = "audio/ogg") -
         return ""
 
     b64_audio = base64.b64encode(audio_bytes).decode("utf-8")
-    url = (
-        "https://generativelanguage.googleapis.com/v1beta/models/"
-        f"gemini-4-hydrogen:generateContent?key={api_key}"
-    )
     payload = {
         "contents": [
             {
@@ -521,9 +546,7 @@ def transcribir_audio_gemini(audio_bytes: bytes, mime_type: str = "audio/ogg") -
             }
         ]
     }
-    resp = requests.post(url, json=payload, timeout=30)
-    resp.raise_for_status()
-    data = resp.json()
+    data = _llamar_gemini_con_reintentos(payload, timeout=30, max_reintentos=3)
 
     candidatos = data.get("candidates") or []
     if not candidatos:
