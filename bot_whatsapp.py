@@ -412,37 +412,38 @@ def _buscar_contexto_inventario_para_unity(consulta: str) -> str:
     return "Productos encontrados en el inventario actual de Farmacia Unitas Norte:\n" + "\n".join(resultados[:6])
 
 
-def _llamar_gemini_con_reintentos(payload: dict, timeout: int = 20, max_reintentos: int = 2) -> dict:
+def _llamar_gemini_con_reintentos(payload: dict, timeout: int = 25, max_reintentos: int = 2) -> dict:
     api_key = (os.getenv("GEMINI_API_KEY") or "").strip()
     if not api_key:
         raise RuntimeError("Falta GEMINI_API_KEY")
 
+    modelo = "gemini-3.5-flash-lite"
     url = (
         "https://generativelanguage.googleapis.com/v1beta/models/"
-        f"gemini-4-hydrogen:generateContent?key={api_key}"
+        f"{modelo}:generateContent?key={api_key}"
     )
 
     ultimo_error = None
     for intento in range(max_reintentos):
         try:
             resp = requests.post(url, json=payload, timeout=timeout)
-            if resp.status_code == 503 or resp.status_code >= 500:
-                ultimo_error = requests.HTTPError(
-                    f"{resp.status_code} Server Error for url: {url}",
-                    response=resp,
-                )
+            if resp.status_code == 429:
+                raise RuntimeError("HTTP 429 Too Many Requests (cuota por minuto alcanzada)")
+            if resp.status_code >= 500:
+                ultimo_error = RuntimeError(f"HTTP {resp.status_code} Error del servidor Gemini")
                 if intento < max_reintentos - 1:
                     time.sleep(0.8)
                     continue
                 raise ultimo_error
-            resp.raise_for_status()
+            if resp.status_code >= 400:
+                raise RuntimeError(f"HTTP {resp.status_code}: {resp.text[:300]}")
             return resp.json()
-        except (requests.Timeout, requests.ConnectionError, requests.HTTPError) as exc:
-            ultimo_error = exc
+        except (requests.Timeout, requests.ConnectionError) as exc:
+            ultimo_error = RuntimeError(f"Error de red/timeout con Gemini: {type(exc).__name__}")
             if intento < max_reintentos - 1:
                 time.sleep(0.8)
                 continue
-            raise
+            raise ultimo_error
 
     raise ultimo_error
 
@@ -496,12 +497,12 @@ def consultar_asistente_unity(remitente: str, mensaje_usuario: str) -> str:
     }
 
     try:
-        data = _llamar_gemini_con_reintentos(payload, timeout=20, max_reintentos=2)
+        data = _llamar_gemini_con_reintentos(payload, timeout=25, max_reintentos=2)
     except Exception as e:
         print(f"[ERROR UNITY API] {e}")
         return (
-            "La línea con el asistente *Unity* está un poco lenta en este momento. "
-            "Puedes volver a intentar tu consulta o escribir *asesor* para que te atienda nuestro equipo."
+            "La línea con el asistente *Unity* está un poco ocupada en este momento. "
+            "Intenta de nuevo en unos segundos o escribe *asesor* para que te atienda nuestro equipo."
         )
 
     candidatos = data.get("candidates") or []
@@ -522,7 +523,7 @@ def consultar_asistente_unity(remitente: str, mensaje_usuario: str) -> str:
     ).strip()
 
     if not respuesta_texto:
-        print(f"[WARN UNITY] Texto vacío. finishReason={fin} partes={partes}")
+        print(f"[WARN UNITY] Texto vacío. finishReason={fin}")
         return (
             "No pude completar esa orientación ahora mismo. "
             "Intenta formularla de otra forma o escribe *asesor* para atención directa."
@@ -583,7 +584,7 @@ def transcribir_audio_gemini(audio_bytes: bytes, mime_type: str = "audio/ogg") -
         ]
     }
     try:
-        data = _llamar_gemini_con_reintentos(payload, timeout=20, max_reintentos=2)
+        data = _llamar_gemini_con_reintentos(payload, timeout=25, max_reintentos=2)
     except Exception as e:
         print(f"[ERROR AUDIO API] {e}")
         return ""
@@ -672,6 +673,7 @@ def inicio():
         "productos_cargados": len(INVENTARIO),
         "tasa_bs": TASA_BS,
         "asistente_unity": "activo",
+        "modelo_ia": "gemini-3.5-flash-lite",
     }
 
 
