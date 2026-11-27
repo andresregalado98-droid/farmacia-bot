@@ -15,11 +15,11 @@ MENSAJE_BIENVENIDA_UNITY = (
     "¡Hola! 👋😊 Qué alegría saludarte. Soy *✨🤖 UNITY — TU GUÍA DE FARMACIA Y ASISTENTE VIRTUAL 🩺✨* al servicio de todos los clientes de *Farmacia Unitas Norte* (RIF: *J-298120886*) 🏥💙.\n\n"
     "Estoy aquí desde este primer mensaje para ayudarte y hacerte todo más fácil ✨. ¡Aprovecha al máximo todo lo que puedo hacer por ti!\n\n"
     "🔍 *1. Precios y disponibilidad al instante:* Escríbeme el nombre de uno o varios productos y te consulto su precio y disponibilidad al momento 💊✨.\n"
-    "🩺 *2. Orientación en malestares leves:* Cuéntame si tienes algún malestar común (dolor de cabeza, acidez, congestión, etc.) y te oriento con opciones habituales de venta libre y cuidados generales 🌿💧.\n"
+    "🩺 *2. Orientación en malestares leves:* Cuéntame si tienes algún malestar común (dolor de cabeza, acidez, congestión, etc.) y te oriento con opciones habituales y cuidados generales 🌿💧.\n"
     "🎙️ *3. ¡También entiendo notas de voz!:* Si vas ocupado o prefieres hablar, envíame un audio y te respondo igual de rápido 🗣️✨.\n"
     "📍 *4. Ubicación y cómo llegar:* Pregúntame dónde estamos y te envío nuestra dirección exacta y el enlace directo de Google Maps 🗺️.\n"
     "👩‍⚕️ *5. Atención personalizada:* Si necesitas hablar con nuestro equipo de mostrador, solo escribe *asesor* en cualquier momento 🤝.\n\n"
-    "⚠️ *Compromiso sanitario (MPPS / Ley Orgánica de Drogas):* Por tu seguridad y la ley vigente, los *estupefacientes*, *psicotrópicos*, *medicamentos controlados*, *antibióticos* y fármacos con récipe deben ser indicados estrictamente por un *médico*.\n\n"
+    "⚠️ *Compromiso sanitario (MPPS / Ley Orgánica de Drogas):* Por tu seguridad y la normativa vigente, los *antibióticos*, *psicotrópicos* y *estupefacientes* deben ser indicados estrictamente por un *médico*.\n\n"
     "¿Qué producto buscas o en qué te puedo ayudar hoy? 💬😊"
 )
 
@@ -43,9 +43,9 @@ MENSAJE_ASESOR = (
 MENSAJE_BLOQUEO_CONTROLADOS = (
     "⚠️ *Aviso importante de salud (MPPS / Ley Orgánica de Drogas):*\n"
     "Como *✨🤖 UNITY — TU GUÍA DE FARMACIA Y ASISTENTE VIRTUAL 🩺✨* al servicio del cliente, cuido tu bienestar y cumplo con la regulación farmacéutica vigente 💙. "
-    "Por ello, no puedo recomendar, indicar ni dar pautas de uso sobre *medicamentos controlados, estupefacientes, psicotrópicos ni antibióticos* 🚫💊.\n\n"
-    "Estos fármacos requieren valoración e indicación directa de un *médico* y cumplir con los requisitos de prescripción establecidos 🩺.\n"
-    "Si deseas atención personalizada de nuestro equipo sobre los requisitos de dispensación en farmacia, escribe *asesor* 👩‍⚕️🤝."
+    "Por ello, no puedo recomendar, indicar ni dar pautas de uso sobre *antibióticos, psicotrópicos ni estupefacientes* 🚫💊.\n\n"
+    "Estos fármacos requieren valoración e indicación directa de un *médico* y cumplir con los requisitos de dispensación establecidos 🩺.\n"
+    "Si deseas atención personalizada de nuestro equipo en farmacia, escribe *asesor* 👩‍⚕️🤝."
 )
 
 INVENTARIO = []
@@ -57,11 +57,10 @@ MENSAJES_PROCESADOS = {}
 TTL_MENSAJES_SEGUNDOS = 300
 
 PALABRAS_CONTROLADOS_Y_ANTIBIOTICOS = {
-    # Categorías regulatorias y control
+    # Categorías regulatorias exclusivas: antibióticos, psicotrópicos y estupefacientes
     "antibiotico", "antibioticos", "antimicrobiano", "antimicrobianos",
     "psicotropico", "psicotropicos", "estupefaciente", "estupefacientes",
-    "controlado", "controlados", "recipe", "receta",
-    # Estupefacientes / opioides / analgésicos controlados
+    # Estupefacientes / opioides / analgésicos estupefacientes
     "morfina", "oxicodona", "fentanilo", "metadona", "buprenorfina", "tapentadol",
     "petidina", "meperidina", "hidromorfona", "codeina", "tramadol", "tramal",
     # Psicotrópicos: ansiolíticos, sedantes, hipnóticos, estimulantes, barbitúricos
@@ -69,7 +68,7 @@ PALABRAS_CONTROLADOS_Y_ANTIBIOTICOS = {
     "lorazepam", "ativan", "bromazepam", "lexotanil", "midazolam", "clobazam",
     "zolpidem", "stilnox", "zopiclona", "eszopiclona", "fenobarbital",
     "metilfenidato", "ritalin", "concerta", "lisdexanfetamina", "modafinilo",
-    # Antidepresivos, antipsicóticos y anticonvulsivantes habituales bajo prescripción
+    # Psicotrópicos / neurofármacos sujetos a control especial
     "sertralina", "fluoxetina", "escitalopram", "citalopram", "paroxetina",
     "venlafaxina", "desvenlafaxina", "duloxetina", "amitriptilina", "bupropion",
     "mirtazapina", "trazodona", "quetiapina", "risperidona", "olanzapina",
@@ -508,11 +507,11 @@ def consultar_asistente_unity(remitente: str, mensaje_usuario: str) -> str:
         "UBICACIÓN DE LA FARMACIA:\n"
         "- Si el usuario pregunta dónde queda, la dirección o cómo llegar a Farmacia Unitas Norte, respóndele con mucho entusiasmo dando la dirección exacta: *Calle 5 entre carreras 11 y 12 de La Concordia, media cuadra bajando del Hospital Central* 📍, e incluye siempre este enlace directo de Google Maps: https://maps.app.goo.gl/4gkAosGHE3Swu4js5\n\n"
         "REGLAS NORMATIVAS Y DE SEGURIDAD:\n"
-        "1. NUNCA recomiendes, prescribas ni des dosis o pautas de uso de MEDICAMENTOS CONTROLADOS, ESTUPEFACIENTES, PSICOTRÓPICOS o ANTIBIÓTICOS, ni de fármacos sujetos a récipe médico. Si el usuario consulta sobre alguno, indica con amabilidad y claridad que debe acudir a un médico y cumplir con los requisitos de prescripción/dispensación vigentes.\n"
-        "2. Ante malestares leves comunes (dolor de cabeza leve, malestar estomacal ocasional, acidez, congestión leve o cansancio), desarrolla una respuesta amena y empática sugiriendo directamente opciones habituales de venta libre (OTC) y medidas generales de alivio (sin diagnosticar ni dar dosis fijas como consulta médica).\n"
-        "3. Al mencionar opciones de venta libre, recuerda revisar el prospecto y consultar al médico o farmacéutico, especialmente en niños, embarazo, lactancia, adultos mayores o condiciones crónicas.\n"
+        "1. Restricción EXCLUSIVA a ANTIBIÓTICOS, PSICOTRÓPICOS y ESTUPEFACIENTES: NUNCA recomiendes, prescribas ni des dosis o pautas de uso de ANTIBIÓTICOS, PSICOTRÓPICOS o ESTUPEFACIENTES. Si el usuario consulta sobre alguno de esos tres grupos, indica con amabilidad y claridad que debe acudir a un médico y cumplir con los requisitos de prescripción/dispensación vigentes. NUNCA exijas ni menciones récipe médico para antiinflamatorios, analgésicos (como meloxicam, ibuprofeno, diclofenac, acetaminofén), antialérgicos ni otros medicamentos de uso cotidiano.\n"
+        "2. Ante malestares leves comunes o consultas sobre analgésicos/antiinflamatorios cotidianos (como meloxicam, dolor de cabeza leve, malestar estomacal ocasional, acidez, congestión leve o cansancio), desarrolla una respuesta amena y empática explicando su uso general, opciones habituales y medidas de alivio (sin diagnosticar ni dar dosis fijas como consulta médica).\n"
+        "3. Al mencionar medicamentos de uso cotidiano o de venta libre, recuerda revisar el prospecto y consultar al médico o farmacéutico en caso de embarazo, lactancia, niños, adultos mayores o condiciones crónicas.\n"
         "4. Si hay señales de alarma o gravedad, recomienda buscar atención médica de inmediato.\n"
-        "5. Si hay productos en el contexto de inventario y no están restringidos, intégralos de forma natural con su precio. Si el usuario preguntó por un producto específico que no aparece en el contexto de inventario, infórmale con calidez que no aparece cargado en este momento y sugiérele escribir *asesor* para verificar existencia física en mostrador.\n"
+        "5. Si hay productos en el contexto de inventario y no son antibióticos, psicotrópicos ni estupefacientes, intégralos de forma natural con su precio. Si el usuario preguntó por un producto específico que no aparece en el contexto de inventario, infórmale con calidez que no aparece cargado en este momento y sugiérele escribir *asesor* para verificar existencia física en mostrador.\n"
         "6. NUNCA calcules, estimes ni inventes precios en pesos colombianos (COP). Usa únicamente el monto en COP que aparezca explícitamente en el contexto de inventario; si no aparece un monto en COP disponible, indica el precio en USD y Bs. y sugiere escribir *asesor* para confirmar el monto en COP.\n"
         "7. Cierra siempre de forma cercana recordando que sigues a su servicio como *✨🤖 UNITY — TU GUÍA DE FARMACIA 🩺✨* y que puede enviarte otro producto, una nota de voz 🎙️ o escribir *asesor* para atención personalizada 👩‍⚕️."
     )
