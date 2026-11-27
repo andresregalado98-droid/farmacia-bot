@@ -12,24 +12,25 @@ app = FastAPI()
 TASA_COP_POR_USD = float(os.getenv("TASA_COP_POR_USD") or "0")
 
 MENSAJE_BIENVENIDA_UNITY = (
-    "¡Hola! 👋😊 Qué alegría saludarte. Soy *✨🤖 UNITY — TU GUÍA DE FARMACIA Y ASISTENTE VIRTUAL 🩺✨* al servicio de todos los clientes de *Farmacia Unitas Norte C.A* (RIF: *J-298120886*) 🏥💙.\n\n"
+    "¡Hola! 👋😊 Qué alegría saludarte. Soy *✨🤖 UNITY — TU GUÍA DE FARMACIA Y ASISTENTE VIRTUAL 🩺✨* al servicio de todos los clientes de *Farmacia Unitas Norte* (RIF: *J-298120886*) 🏥💙.\n\n"
     "Estoy aquí desde este primer mensaje para ayudarte y hacerte todo más fácil ✨. ¡Aprovecha al máximo todo lo que puedo hacer por ti!\n\n"
     "🔍 *1. Precios y disponibilidad al instante:* Escríbeme el nombre de uno o varios productos y te consulto su precio y disponibilidad al momento 💊✨.\n"
     "🩺 *2. Orientación en malestares leves:* Cuéntame si tienes algún malestar común (dolor de cabeza, acidez, congestión, etc.) y te oriento con opciones habituales y cuidados generales 🌿💧.\n"
     "🎙️ *3. ¡También entiendo notas de voz!:* Si vas ocupado o prefieres hablar, envíame un audio y te respondo igual de rápido 🗣️✨.\n"
-    "📍 *4. Ubicación y cómo llegar:* Pregúntame dónde estamos y te envío nuestra dirección exacta y el enlace directo de Google Maps 🗺️.\n"
+    "📍 *4. Ubicación, horario y cómo llegar:* Pregúntame dónde estamos y te envío nuestra dirección exacta, enlace de Google Maps 🗺️ y horario (*Lunes a Sábado: 7:00 AM a 10:30 PM | Domingo: Cerrado* ⏰).\n"
     "👩‍⚕️ *5. Atención personalizada:* Si necesitas hablar con nuestro equipo de mostrador, solo escribe *asesor* en cualquier momento 🤝.\n\n"
     "⚠️ *Compromiso sanitario (MPPS / Ley Orgánica de Drogas):* Por tu seguridad y la normativa vigente, los *antibióticos*, *psicotrópicos* y *estupefacientes* deben ser indicados estrictamente por un *médico*.\n\n"
     "¿Qué producto buscas o en qué te puedo ayudar hoy? 💬😊"
 )
 
 MENSAJE_BIENVENIDA_PRODUCTO = (
-    "¡Hola! 👋😊 Soy *✨🤖 UNITY — TU GUÍA DE FARMACIA Y ASISTENTE VIRTUAL 🩺✨* en *Farmacia Unitas Norte C.A* (RIF: *J-298120886*) 🏥. Aquí tienes lo que encontré para ti:\n"
+    "¡Hola! 👋😊 Soy *✨🤖 UNITY — TU GUÍA DE FARMACIA Y ASISTENTE VIRTUAL 🩺✨* en *Farmacia Unitas Norte* (RIF: *J-298120886*) 🏥. Aquí tienes lo que encontré para ti:\n"
 )
 
 MENSAJE_DESPEDIDA = (
-    "¡Muchas gracias por confiar en *Farmacia Unitas Norte C.A* (RIF: *J-298120886*)! 💙✨\n"
-    "📍 *Nos encuentras en:* Calle 5 entre carreras 11 y 12 de La Concordia, media cuadra bajando del Hospital Central.\n\n"
+    "¡Muchas gracias por confiar en *Farmacia Unitas Norte* (RIF: *J-298120886*)! 💙✨\n"
+    "📍 *Nos encuentras en:* Calle 5 entre carreras 11 y 12 de La Concordia, media cuadra bajando del Hospital Central.\n"
+    "⏰ *Horario de atención:* Lunes a Sábado de *7:00 AM a 10:30 PM* | Domingo: *Cerrado*.\n\n"
     "Recuerda que sigo aquí como *✨🤖 UNITY — TU GUÍA DE FARMACIA Y ASISTENTE VIRTUAL 🩺✨* al servicio del cliente 🙌😊. "
     "Puedes escribirme o enviarme un audio 🎙️ con otro producto 💊, hacerme una consulta sobre algún malestar leve 🩺, "
     "o escribir *asesor* para recibir atención personalizada de nuestro equipo 👩‍⚕️. ¡Que tengas un excelente día! ☀️💛"
@@ -153,7 +154,7 @@ def _contiene_medicamento_restringido(texto: str) -> bool:
 
 
 def _es_consulta_conversacional(texto_norm: str) -> bool:
-    """Detecta si el usuario está haciendo una pregunta abierta, pidiendo orientación de síntomas, funciones o ubicación."""
+    """Detecta si el usuario está haciendo una pregunta abierta, pidiendo orientación de síntomas, funciones, horario o ubicación."""
     indicadores_conversacion = (
         "?", "¿", "dolor", "fiebre", "gripe", "tos", "acidez", "alergia",
         "malestar", "sintoma", "síntoma", "mareo", "nausea", "náusea",
@@ -162,9 +163,10 @@ def _es_consulta_conversacional(texto_norm: str) -> bool:
         "qué puedo tomar", "que me tomo", "qué me tomo", "como se toma",
         "cómo se toma", "para que sirve", "para qué sirve", "ubicacion",
         "ubicación", "direccion", "dirección", "donde quedan", "dónde quedan",
-        "como llegar", "cómo llegar", "horario", "abiertos", "trabajan",
-        "pesos", "colombianos", "cop", "bolivares", "bolívares", "tasa",
-        "que haces", "qué haces", "funciones", "ayudar", "quien eres", "quién eres"
+        "como llegar", "cómo llegar", "horario", "abiertos", "abierto", "cierran",
+        "cerrado", "domingo", "trabajan", "pesos", "colombianos", "cop",
+        "bolivares", "bolívares", "tasa", "que haces", "qué haces",
+        "funciones", "ayudar", "quien eres", "quién eres"
     )
     return any(ind in texto_norm for ind in indicadores_conversacion)
 
@@ -496,16 +498,19 @@ def consultar_asistente_unity(remitente: str, mensaje_usuario: str) -> str:
         "Eres *✨🤖 UNITY — TU GUÍA DE FARMACIA Y ASISTENTE VIRTUAL 🩺✨*, cercano, ameno y humanizado al servicio de todos los clientes de Farmacia Unitas Norte (RIF: J-298120886) en Venezuela. "
         "Atiendes al cliente desde el inicio de la conversación. Cada vez que menciones tu nombre, resáltalo con estilo y emoticones como *✨🤖 UNITY — TU GUÍA DE FARMACIA 🩺✨*. "
         "Operas bajo los criterios generales de orientación sanitaria alineados con la normativa del Ministerio del Poder Popular para la Salud (MPPS) y la Ley Orgánica de Drogas en Venezuela. "
-        "Responde siempre en español con un tono muy humano, cercano, cálido, empático y conversacional para WhatsApp (unos 140-190 palabras), usando viñetas claras, negritas simples con *asteriscos* y bastantes emoticones naturales y expresivos (como 👋, 😊, 🩺, 💊, 💧, 🌿, 📍, ✨, 💙, 🎙️, 👩‍⚕️, ⚠️). "
+        "Responde siempre en español con un tono muy humano, cercano, cálido, empático y conversacional para WhatsApp (unos 140-190 palabras), usando viñetas claras, negritas simples con *asteriscos* y bastantes emoticones naturales y expresivos (como 👋, 😊, 🩺, 💊, 💧, 🌿, 📍, ⏰, ✨, 💙, 🎙️, 👩‍⚕️, ⚠️). "
         "NUNCA uses expresiones como 'medicamentos sencillos' ni 'productos sencillos', ni te presentes como médico.\n\n"
         "FUNCIONES DE UNITY (PARA EXPLICARLAS SI EL CLIENTE PREGUNTA QUÉ HACES O CÓMO APROVECHARTE):\n"
         "- Consulta rápida de precios y disponibilidad de inventario al momento 💊✨.\n"
         "- Orientación cercana sobre malestares comunes leves y opciones habituales de venta libre (OTC) 🩺🌿.\n"
         "- Comprensión de notas de voz/audios enviados por WhatsApp 🎙️.\n"
-        "- Envío de la ubicación exacta y enlace de Google Maps 📍.\n"
+        "- Envío de la ubicación exacta, enlace de Google Maps 📍 y horario de atención ⏰.\n"
         "- Atención personalizada con nuestro equipo escribiendo *asesor* 👩‍⚕️.\n\n"
-        "UBICACIÓN DE LA FARMACIA:\n"
-        "- Si el usuario pregunta dónde queda, la dirección o cómo llegar a Farmacia Unitas Norte, respóndele con mucho entusiasmo dando la dirección exacta: *Calle 5 entre carreras 11 y 12 de La Concordia, media cuadra bajando del Hospital Central* 📍, e incluye siempre este enlace directo de Google Maps: https://maps.app.goo.gl/4gkAosGHE3Swu4js5\n\n"
+        "UBICACIÓN Y HORARIO DE LA FARMACIA:\n"
+        "- Si el usuario pregunta dónde queda, la dirección o cómo llegar a Farmacia Unitas Norte, respóndele con mucho entusiasmo dando la dirección exacta: *Calle 5 entre carreras 11 y 12 de La Concordia, media cuadra bajando del Hospital Central* 📍, e incluye siempre este enlace directo de Google Maps: https://maps.app.goo.gl/4gkAosGHE3Swu4js5\n"
+        "- Si el usuario pregunta por el horario de trabajo, si están abiertos o si abren los domingos, infórmale con claridad:\n"
+        "  • *Lunes a Sábado:* 7:00 AM a 10:30 PM ⏰\n"
+        "  • *Domingo:* Cerrado 🛌\n\n"
         "REGLAS NORMATIVAS Y DE SEGURIDAD:\n"
         "1. Restricción EXCLUSIVA a ANTIBIÓTICOS, PSICOTRÓPICOS y ESTUPEFACIENTES: NUNCA recomiendes, prescribas ni des dosis o pautas de uso de ANTIBIÓTICOS, PSICOTRÓPICOS o ESTUPEFACIENTES. Si el usuario consulta sobre alguno de esos tres grupos, indica con amabilidad y claridad que debe acudir a un médico y cumplir con los requisitos de prescripción/dispensación vigentes. NUNCA exijas ni menciones récipe médico para antiinflamatorios, analgésicos (como meloxicam, ibuprofeno, diclofenac, acetaminofén), antialérgicos ni otros medicamentos de uso cotidiano.\n"
         "2. Ante malestares leves comunes o consultas sobre analgésicos/antiinflamatorios cotidianos (como meloxicam, dolor de cabeza leve, malestar estomacal ocasional, acidez, congestión leve o cansancio), desarrolla una respuesta amena y empática explicando su uso general, opciones habituales y medidas de alivio (sin diagnosticar ni dar dosis fijas como consulta médica).\n"
