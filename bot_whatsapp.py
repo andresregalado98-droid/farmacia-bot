@@ -19,7 +19,7 @@ MENSAJE_BIENVENIDA_UNITY = (
     "🎙️ *3. ¡También entiendo notas de voz!:* Si vas ocupado o prefieres hablar, envíame un audio y te respondo igual de rápido 🗣️✨.\n"
     "📍 *4. Ubicación, horario y cómo llegar:* Pregúntame dónde estamos y te envío nuestra dirección exacta, enlace de Google Maps 🗺️ y horario (*Lunes a Sábado: 7:00 AM a 10:30 PM | Domingo: Cerrado* ⏰).\n"
     "👩‍⚕️ *5. Atención personalizada:* Si necesitas hablar con nuestro equipo de mostrador, solo escribe *asesor* en cualquier momento 🤝.\n\n"
-    "⚠️ *Compromiso sanitario (MPPS / Ley Orgánica de Drogas):* Por tu seguridad y la normativa vigente, los *antibióticos*, *psicotrópicos* y *estupefacientes* deben ser indicados estrictamente por un *médico*.\n\n"
+    "⚠️ *Compromiso sanitario (MPPS / Ley Orgánica de Drogas):* Puedo informarte precios y disponibilidad de inventario, pero por normativa vigente los *antibióticos*, *psicotrópicos* y *estupefacientes* nunca se recomiendan ni se indican por este medio; requieren prescripción e indicación de un *médico*.\n\n"
     "¿Qué producto buscas o en qué te puedo ayudar hoy? 💬😊"
 )
 
@@ -44,9 +44,14 @@ MENSAJE_ASESOR = (
 MENSAJE_BLOQUEO_CONTROLADOS = (
     "⚠️ *Aviso importante de salud (MPPS / Ley Orgánica de Drogas):*\n"
     "Como *✨🤖 UNITY — TU GUÍA DE FARMACIA Y ASISTENTE VIRTUAL 🩺✨* al servicio del cliente, cuido tu bienestar y cumplo con la regulación farmacéutica vigente 💙. "
-    "Por ello, no puedo recomendar, indicar ni dar pautas de uso sobre *antibióticos, psicotrópicos ni estupefacientes* 🚫💊.\n\n"
+    "Puedo informarte precios y disponibilidad de inventario, pero no puedo recomendar, indicar ni dar pautas o dosis de uso sobre *antibióticos, psicotrópicos ni estupefacientes* 🚫💊.\n\n"
     "Estos fármacos requieren valoración e indicación directa de un *médico* y cumplir con los requisitos de dispensación establecidos 🩺.\n"
-    "Si deseas atención personalizada de nuestro equipo en farmacia, escribe *asesor* 👩‍⚕️🤝."
+    "Si deseas consultar disponibilidad exacta en mostrador o atención personalizada de nuestro equipo, escribe *asesor* 👩‍⚕️🤝."
+)
+
+NOTA_DISPENSACION_RESTRINGIDOS = (
+    "\n⚠️ *Nota sanitaria:* Si tu consulta incluye *antibióticos, psicotrópicos o estupefacientes*, "
+    "esta información es únicamente referencial de precio y disponibilidad; su dispensación requiere indicación y récipe médico vigente 🩺📋."
 )
 
 INVENTARIO = []
@@ -153,6 +158,30 @@ def _contiene_medicamento_restringido(texto: str) -> bool:
     return False
 
 
+def _es_solo_consulta_precio_o_disponibilidad(texto: str) -> bool:
+    """Detecta si el cliente únicamente pregunta precio o existencia sin pedir recomendación ni dosis."""
+    norm = _normalizar(texto)
+    norm_plano = re.sub(r"[^\w\s]", " ", norm)
+    norm_plano = re.sub(r"\s+", " ", norm_plano).strip()
+
+    verbos_recomendacion_o_uso = (
+        "recomienda", "recomiendas", "recomiendame", "sugiere", "sirve para",
+        "para que sirve", "que puedo tomar", "que me tomo", "como se toma",
+        "como tomar", "cada cuanto", "dosis", "cuantas pastillas", "cuantos dias",
+        "me duele", "tengo infeccion", "tengo gripe", "tengo fiebre",
+        "tengo dolor", "tengo tos", "malestar", "sintoma"
+    )
+    if any(v in norm_plano for v in verbos_recomendacion_o_uso):
+        return False
+
+    indicadores_precio_stock = (
+        "precio", "precios", "cuanto cuesta", "cuanto vale", "cuesta", "vale",
+        "tienen", "tiene", "tenes", "hay", "disponible", "disponibles",
+        "disponibilidad", "existencia", "existencias", "stock", "busco", "necesito"
+    )
+    return any(ind in norm_plano for ind in indicadores_precio_stock)
+
+
 def _es_consulta_conversacional(texto_norm: str) -> bool:
     """Detecta si el usuario está haciendo una pregunta abierta, pidiendo orientación de síntomas, funciones, horario o ubicación."""
     indicadores_conversacion = (
@@ -201,7 +230,9 @@ def procesar_mensaje_usuario(texto: str):
     if texto_plano in ("asesor", "humano", "agente", "persona"):
         return MENSAJE_ASESOR, None
 
-    if _es_consulta_conversacional(minuscula):
+    # Si es solo pregunta de precio/disponibilidad (ej. "¿tienen amoxicilina 500mg?" o "¿cuánto vale la azitromicina?"),
+    # permitimos extraer los términos para ir directo al inventario.
+    if _es_consulta_conversacional(minuscula) and not _es_solo_consulta_precio_o_disponibilidad(texto_limpio):
         return None, None
 
     relleno = {
@@ -217,7 +248,7 @@ def procesar_mensaje_usuario(texto: str):
         "un", "una", "unos", "unas",
         "por", "favor", "porfa", "plis",
         "te", "se", "para", "con", "algun", "algún", "alguna", "algunos", "algunas",
-        "y", "e"
+        "y", "e", "pesos", "colombianos", "cop", "bolivares", "bolívares", "dolares", "dólares", "usd"
     }
 
     terminos = []
@@ -350,9 +381,12 @@ def buscar_productos(termino: str, limite: int = 8) -> list:
 
 
 def formatear_respuesta_productos(termino: str, productos: list) -> str:
+    es_restringido = _contiene_medicamento_restringido(termino) or any(
+        _contiene_medicamento_restringido(str(p.get("descripcion") or "")) for p in productos[:5]
+    )
     lineas = [
         f"{MENSAJE_BIENVENIDA_PRODUCTO}",
-        f"🔎 *Resultados para {termino}:*\n",
+        f"🔎 *Resultados para {termino}:* (✅ Disponible en inventario)\n",
     ]
     for p in productos[:5]:
         usd = float(p.get("usd") or 0.0)
@@ -364,6 +398,9 @@ def formatear_respuesta_productos(termino: str, productos: list) -> str:
             f"💊 *{desc}* (Cód: {codigo})\n"
             f"   💵 USD: ${usd:.2f} | 🇻🇪 Bs. {bs:,.2f} | 🇨🇴 COP {cop:,.0f}"
         )
+
+    if es_restringido:
+        lineas.append(NOTA_DISPENSACION_RESTRINGIDOS)
 
     lineas.append(f"\n{MENSAJE_DESPEDIDA}")
     texto_final = "\n".join(lineas)
@@ -382,6 +419,7 @@ def responder_consulta_productos(termino_o_lista):
         return formatear_respuesta_productos(termino, encontrados)
 
     alguno_encontrado = False
+    alguno_restringido = False
     bloques = [f"{MENSAJE_BIENVENIDA_PRODUCTO}"]
     for term in terminos:
         encontrados = buscar_productos(term)
@@ -390,20 +428,27 @@ def responder_consulta_productos(termino_o_lista):
             bloques.append(f"No encontré coincidencias exactas para *{term}* en este momento 😅.\n")
         else:
             alguno_encontrado = True
+            if _contiene_medicamento_restringido(term):
+                alguno_restringido = True
             for p in encontrados[:4]:
                 usd = float(p.get("usd") or 0.0)
                 bs = float(p.get("bs") or 0.0)
                 cop = float(p.get("cop") or 0.0)
                 desc = str(p.get("descripcion") or "Producto")
                 codigo = str(p.get("codigo") or "N/A")
+                if _contiene_medicamento_restringido(desc):
+                    alguno_restringido = True
                 bloques.append(
-                    f"💊 *{desc}* (Cód: {codigo})\n"
+                    f"💊 *{desc}* (Cód: {codigo}) — ✅ Disponible\n"
                     f"   💵 USD: ${usd:.2f} | 🇻🇪 Bs. {bs:,.2f} | 🇨🇴 COP {cop:,.0f}"
                 )
             bloques.append("")
 
     if not alguno_encontrado:
         return None
+
+    if alguno_restringido:
+        bloques.append(NOTA_DISPENSACION_RESTRINGIDOS)
 
     bloques.append(MENSAJE_DESPEDIDA)
     return "\n".join(bloques)[:3800]
@@ -434,12 +479,13 @@ def _buscar_contexto_inventario_para_unity(consulta: str) -> str:
             if cop_val <= 0 and p["usd"] > 0 and TASA_COP_POR_USD > 0:
                 cop_val = round(p["usd"] * TASA_COP_POR_USD, 0)
             parte_cop = f" | COP {cop_val:,.0f}" if cop_val > 0 else " | COP no disponible en contexto"
-            linea = f"- {p['descripcion']} (USD ${p['usd']:.2f} | Bs. {p['bs']:,.2f}{parte_cop})"
+            etiqueta_rest = " [ANTIBIÓTICO/PSICOTRÓPICO/ESTUPEFACIENTE - SOLO INFORMAR PRECIO Y DISPONIBILIDAD, NO RECOMENDAR NI DAR DOSIS]" if _contiene_medicamento_restringido(p["descripcion"]) else ""
+            linea = f"- {p['descripcion']} (USD ${p['usd']:.2f} | Bs. {p['bs']:,.2f}{parte_cop}){etiqueta_rest}"
             if linea not in resultados:
                 resultados.append(linea)
     if not resultados:
         return ""
-    return "Productos encontrados en el inventario actual de Farmacia Unitas Norte:\n" + "\n".join(resultados[:6])
+    return "Productos disponibles en el inventario actual de Farmacia Unitas Norte:\n" + "\n".join(resultados[:6])
 
 
 def _llamar_gemini_con_reintentos(payload: dict, timeout: int = 25, max_reintentos: int = 2) -> dict:
@@ -479,7 +525,9 @@ def _llamar_gemini_con_reintentos(payload: dict, timeout: int = 25, max_reintent
 
 
 def consultar_asistente_unity(remitente: str, mensaje_usuario: str) -> str:
-    if _contiene_medicamento_restringido(mensaje_usuario):
+    # Solo bloqueamos de entrada si menciona antibióticos/psicotrópicos/estupefacientes
+    # Y NO está preguntando únicamente precio o disponibilidad.
+    if _contiene_medicamento_restringido(mensaje_usuario) and not _es_solo_consulta_precio_o_disponibilidad(mensaje_usuario):
         return MENSAJE_BLOQUEO_CONTROLADOS
 
     api_key = (os.getenv("GEMINI_API_KEY") or "").strip()
@@ -512,11 +560,11 @@ def consultar_asistente_unity(remitente: str, mensaje_usuario: str) -> str:
         "  • *Lunes a Sábado:* 7:00 AM a 10:30 PM ⏰\n"
         "  • *Domingo:* Cerrado 🛌\n\n"
         "REGLAS NORMATIVAS Y DE SEGURIDAD:\n"
-        "1. Restricción EXCLUSIVA a ANTIBIÓTICOS, PSICOTRÓPICOS y ESTUPEFACIENTES: NUNCA recomiendes, prescribas ni des dosis o pautas de uso de ANTIBIÓTICOS, PSICOTRÓPICOS o ESTUPEFACIENTES. Si el usuario consulta sobre alguno de esos tres grupos, indica con amabilidad y claridad que debe acudir a un médico y cumplir con los requisitos de prescripción/dispensación vigentes. NUNCA exijas ni menciones récipe médico para antiinflamatorios, analgésicos (como meloxicam, ibuprofeno, diclofenac, acetaminofén), antialérgicos ni otros medicamentos de uso cotidiano.\n"
-        "2. Ante malestares leves comunes o consultas sobre analgésicos/antiinflamatorios cotidianos (como meloxicam, dolor de cabeza leve, malestar estomacal ocasional, acidez, congestión leve o cansancio), desarrolla una respuesta amena y empática explicando su uso general, opciones habituales y medidas de alivio (sin diagnosticar ni dar dosis fijas como consulta médica).\n"
-        "3. Al mencionar medicamentos de uso cotidiano o de venta libre, recuerda revisar el prospecto y consultar al médico o farmacéutico en caso de embarazo, lactancia, niños, adultos mayores o condiciones crónicas.\n"
-        "4. Si hay señales de alarma o gravedad, recomienda buscar atención médica de inmediato.\n"
-        "5. Si hay productos en el contexto de inventario y no son antibióticos, psicotrópicos ni estupefacientes, intégralos de forma natural con su precio. Si el usuario preguntó por un producto específico que no aparece en el contexto de inventario, infórmale con calidez que no aparece cargado en este momento y sugiérele escribir *asesor* para verificar existencia física en mostrador.\n"
+        "1. PRECIOS Y DISPONIBILIDAD DE ANTIBIÓTICOS, PSICOTRÓPICOS Y ESTUPEFACIENTES: Si el usuario pregunta únicamente por el precio o disponibilidad de un antibiótico, psicotrópico o estupefaciente (por ejemplo, amoxicilina, azitromicina, ciprofloxacina, clonazepam, tramadol), SÍ debes darle el precio y confirmar su disponibilidad según el contexto de inventario, SIN recetar, SIN recomendarlo y SIN dar dosis ni indicaciones de uso. Añade brevemente que su dispensación está sujeta a indicación/récipe médico vigente. Si no aparece en el inventario, dile con amabilidad que no aparece cargado en este momento y sugiere escribir *asesor* para confirmar existencia en mostrador.\n"
+        "2. PROHIBICIÓN DE RECETAR O RECOMENDAR ANTIBIÓTICOS, PSICOTRÓPICOS Y ESTUPEFACIENTES: Si el usuario pide que le recomiendes un antibiótico, pregunta qué antibiótico tomar para una infección/síntoma o pide dosis/pautas de uso de antibióticos, psicotrópicos o estupefacientes, NUNCA los sugieras ni des dosis; indícale con amabilidad que debe acudir a un médico. NUNCA exijas ni menciones récipe médico para antiinflamatorios, analgésicos (como meloxicam, ibuprofeno, diclofenac, acetaminofén), antialérgicos ni otros medicamentos de uso cotidiano.\n"
+        "3. Ante malestares leves comunes o consultas sobre analgésicos/antiinflamatorios cotidianos (como meloxicam, dolor de cabeza leve, malestar estomacal ocasional, acidez, congestión leve o cansancio), desarrolla una respuesta amena y empática explicando su uso general, opciones habituales y medidas de alivio (sin diagnosticar ni dar dosis fijas como consulta médica).\n"
+        "4. Al mencionar medicamentos de uso cotidiano o de venta libre, recuerda revisar el prospecto y consultar al médico o farmacéutico en caso de embarazo, lactancia, niños, adultos mayores o condiciones crónicas.\n"
+        "5. Si hay señales de alarma o gravedad, recomienda buscar atención médica de inmediato.\n"
         "6. NUNCA calcules, estimes ni inventes precios en pesos colombianos (COP). Usa únicamente el monto en COP que aparezca explícitamente en el contexto de inventario; si no aparece un monto en COP disponible, indica el precio en USD y Bs. y sugiere escribir *asesor* para confirmar el monto en COP.\n"
         "7. Cierra siempre de forma cercana recordando que sigues a su servicio como *✨🤖 UNITY — TU GUÍA DE FARMACIA 🩺✨* y que puede enviarte otro producto, una nota de voz 🎙️ o escribir *asesor* para atención personalizada 👩‍⚕️."
     )
@@ -534,7 +582,7 @@ def consultar_asistente_unity(remitente: str, mensaje_usuario: str) -> str:
         "system_instruction": {"parts": [{"text": instrucciones_sistema}]},
         "contents": contents,
         "generationConfig": {
-            "temperature": 0.5,
+            "temperature": 0.45,
             "maxOutputTokens": 950,
         },
     }
