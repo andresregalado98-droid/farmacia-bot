@@ -9,10 +9,12 @@ from fastapi.responses import PlainTextResponse
 
 app = FastAPI()
 
+TASA_COP_POR_USD = float(os.getenv("TASA_COP_POR_USD") or "0")
+
 MENSAJE_BIENVENIDA = (
     "¡Hola! 👋 Bienvenido a *Farmacia Unitas Norte* (RIF: *J-298120886*) 🏥✨.\n"
     "Escríbeme el nombre del medicamento o producto que deseas consultar 💊🔍.\n"
-    "• Si quieres orientación amigable sobre un malestar leve o opciones de venta libre, escribe *Unity* para hablar con nuestro asistente virtual 🩺💬.\n"
+    "• *✨ UNITY — TU GUÍA DE FARMACIA Y AMIGO DE SALUD ✨:* ¿Tienes algún malestar leve, dudas sobre opciones de venta libre o quieres conversar sobre tu bienestar? Escribe *Unity* para chatear con él 🩺💬.\n"
     "• Si necesitas atención personalizada, escribe *asesor* y nuestro equipo te atenderá con gusto 👩‍⚕️🤝."
 )
 
@@ -24,7 +26,7 @@ MENSAJE_DESPEDIDA = (
     "¡Gracias por preferir a *Farmacia Unitas Norte* (RIF: *J-298120886*)! 💙✨\n"
     "📍 *Ubicación:* Calle 5 entre carreras 11 y 12 de La Concordia, media cuadra bajando del Hospital Central.\n\n"
     "Estamos siempre a tu orden 🙌. Si deseas consultar otro producto, solo escríbeme su nombre 💊, "
-    "escribe *Unity* para consultar a nuestro asistente virtual 🩺, "
+    "escribe *Unity* para hablar con tu guía de farmacia 🩺, "
     "o escribe *asesor* y serás atendido por nuestro personal 👩‍⚕️. ¡Que tengas un excelente día! ☀️😊"
 )
 
@@ -34,25 +36,24 @@ MENSAJE_ASESOR = (
 )
 
 MENSAJE_BIENVENIDA_UNITY = (
-    "¡Hola! 😊 Soy *Unity*, tu asistente virtual de orientación en *Farmacia Unitas Norte* (RIF: *J-298120886*).\n\n"
-    "Puedo ayudarte con:\n"
-    "• Orientación amigable sobre malestares🩺\n"
-    "• Informacion sobre enfermedades 🩺\n"
-    "• Opciones habituales de venta libre y cuidados generales 💊\n"
-    "• Revisión de disponibilidad, precios y ubicación de nuestra farmacia 🛒📍\n\n"
+    "¡Hola! 😊 Soy *Unity*, *tu guía de farmacia y amigo de salud* en *Farmacia Unitas Norte* (RIF: *J-298120886*) 💙.\n\n"
+    "Estoy aquí para acompañarte y orientarte con:\n"
+    "• Conversación cercana sobre malestares comunes leves 🩺💬\n"
+    "• Opciones habituales de venta libre y cuidados generales 💊🌿\n"
+    "• Consulta de precios, disponibilidad y cómo llegar a nuestra farmacia 🛒📍\n\n"
     "⚠️ *Normativa sanitaria (MPPS / Ley Orgánica de Drogas):* Los *estupefacientes*, *psicotrópicos*, *medicamentos controlados*, *antibióticos* y fármacos sujetos a prescripción requieren evaluación e indicación estricta de un *médico* conforme a la normativa vigente.\n\n"
-    "¿Qué malestar te está molestando o qué producto quieres consultar hoy? 💬\n"
+    "¿Cómo te sientes hoy o qué malestar quieres que conversemos? ✨\n"
     "_(Escribe *salir* para volver al buscador o *asesor* para hablar con nuestro equipo)_."
 )
 
 MENSAJE_SALIDA_UNITY = (
-    "Has salido del modo asistente *Unity* 👋. "
+    "Has salido del chat con *Unity*, tu guía de farmacia 👋💙. "
     "Ahora puedes escribir directamente el nombre del producto que buscas o escribir *asesor* 💊."
 )
 
 MENSAJE_BLOQUEO_CONTROLADOS = (
     "⚠️ *Restricción sanitaria (MPPS / Ley Orgánica de Drogas):*\n"
-    "Por regulación farmacéutica vigente, *Unity* no puede recomendar, indicar ni dar pautas de uso sobre *medicamentos controlados, estupefacientes, psicotrópicos ni antibióticos*.\n\n"
+    "Como tu guía de farmacia, por regulación farmacéutica vigente no puedo recomendar, indicar ni dar pautas de uso sobre *medicamentos controlados, estupefacientes, psicotrópicos ni antibióticos*.\n\n"
     "Estos fármacos requieren valoración e indicación directa de un *médico* y cumplir con los requisitos de prescripción/dispensación establecidos.\n"
     "Si deseas comunicarte con nuestro equipo, escribe *asesor* (o *salir* para volver al buscador)."
 )
@@ -341,7 +342,7 @@ def formatear_respuesta_productos(termino: str, productos: list) -> str:
         return (
             f"{MENSAJE_BIENVENIDA_PRODUCTO}"
             f"No encontré resultados para *{termino}* en este momento 🔎. "
-            f"Verifica el nombre del producto, escribe *Unity* para orientarte con nuestro asistente virtual 🩺, "
+            f"Verifica el nombre del producto, escribe *Unity* para hablar con tu guía de farmacia 🩺, "
             f"o escribe *asesor* y pronto serás atendido por nuestro personal 👩‍⚕️.\n\n"
             f"{MENSAJE_DESPEDIDA}"
         )
@@ -406,7 +407,11 @@ def _buscar_contexto_inventario_para_unity(consulta: str) -> str:
     resultados = []
     for term in terminos[:3]:
         for p in buscar_productos(term, limite=3):
-            linea = f"- {p['descripcion']} (USD ${p['usd']:.2f} | Bs. {p['bs']:,.2f})"
+            cop_val = float(p.get("cop") or 0.0)
+            if cop_val <= 0 and p["usd"] > 0 and TASA_COP_POR_USD > 0:
+                cop_val = round(p["usd"] * TASA_COP_POR_USD, 0)
+            parte_cop = f" | COP {cop_val:,.0f}" if cop_val > 0 else " | COP no disponible en contexto"
+            linea = f"- {p['descripcion']} (USD ${p['usd']:.2f} | Bs. {p['bs']:,.2f}{parte_cop})"
             if linea not in resultados:
                 resultados.append(linea)
     if not resultados:
@@ -468,10 +473,10 @@ def consultar_asistente_unity(remitente: str, mensaje_usuario: str) -> str:
     contexto_inv = _buscar_contexto_inventario_para_unity(mensaje_usuario)
 
     instrucciones_sistema = (
-        "Eres Unity, el asistente virtual de orientación farmacéutica de Farmacia Unitas Norte (RIF: J-298120886) en Venezuela. "
+        "Eres Unity, la guía de farmacia y amigo de salud cercano y confiable de Farmacia Unitas Norte (RIF: J-298120886) en Venezuela. "
         "Operas bajo los criterios generales de orientación sanitaria alineados con la normativa del Ministerio del Poder Popular para la Salud (MPPS) y la Ley Orgánica de Drogas en Venezuela. "
-        "Responde siempre en español con un tono ameno, cálido, cercano y útil para WhatsApp (unos 130-180 palabras), usando viñetas cortas, negritas simples con *asteriscos* y emoticones naturales donde aporten claridad (como 🩺, 💊, 💧, 🌿, 📍, ✨, ⚠️). "
-        "NUNCA uses expresiones como 'medicamentos sencillos' ni 'productos sencillos'.\n\n"
+        "Responde siempre en español con un tono ameno, cálido, empático y útil para WhatsApp (unos 130-180 palabras), usando viñetas cortas, negritas simples con *asteriscos* y emoticones naturales donde aporten claridad (como 🩺, 💊, 💧, 🌿, 📍, ✨, 💙, ⚠️). "
+        "NUNCA uses expresiones como 'medicamentos sencillos' ni 'productos sencillos', ni te presentes como médico.\n\n"
         "UBICACIÓN DE LA FARMACIA:\n"
         "- Si el usuario pregunta dónde queda, la dirección o cómo llegar a Farmacia Unitas Norte, respóndele con entusiasmo dando la dirección exacta: *Calle 5 entre carreras 11 y 12 de La Concordia, media cuadra bajando del Hospital Central* 📍, e incluye siempre este enlace directo de Google Maps: https://maps.app.goo.gl/4gkAosGHE3Swu4js5\n\n"
         "REGLAS NORMATIVAS Y DE SEGURIDAD:\n"
@@ -480,7 +485,8 @@ def consultar_asistente_unity(remitente: str, mensaje_usuario: str) -> str:
         "3. Al mencionar opciones de venta libre, recuerda revisar el prospecto y consultar al médico o farmacéutico, especialmente en niños, embarazo, lactancia, adultos mayores o condiciones crónicas.\n"
         "4. Si hay señales de alarma o gravedad, recomienda buscar atención médica de inmediato.\n"
         "5. Si hay productos en el contexto de inventario y no están restringidos, intégralos de forma natural con su precio.\n"
-        "6. Cierra de manera amable recordando que puede escribir *asesor* para atención personalizada o *salir* para volver al buscador."
+        "6. NUNCA calcules, estimes ni inventes precios en pesos colombianos (COP). Usa únicamente el monto en COP que aparezca explícitamente en el contexto de inventario; si no aparece un monto en COP disponible, indica el precio en USD y Bs. y sugiere consultar el producto directo en el chat o escribir *asesor* para confirmar el monto en COP.\n"
+        "7. Cierra de manera amable recordando que puede escribir *asesor* para atención personalizada o *salir* para volver al buscador."
     )
 
     prompt_usuario = mensaje_usuario.strip()
@@ -506,7 +512,7 @@ def consultar_asistente_unity(remitente: str, mensaje_usuario: str) -> str:
     except Exception as e:
         print(f"[ERROR UNITY API] {e}")
         return (
-            "La línea con *Unity* está un poco ocupada en este momento 😊. "
+            "La línea con *Unity*, tu guía de farmacia, está un poco ocupada en este momento 😊. "
             "Intenta de nuevo en unos segundos o escribe *asesor* para que te atienda nuestro equipo."
         )
 
@@ -637,7 +643,7 @@ def _manejar_texto_entrante(remitente: str, texto_usuario: str):
         enviar_mensaje_whatsapp(remitente, MENSAJE_ASESOR)
         return
 
-    if norm_plano in ("unity", "hola unity", "asistente", "asistente virtual"):
+    if norm_plano in ("unity", "hola unity", "asistente", "asistente virtual", "amigo de salud", "guia de farmacia"):
         _activar_unity(remitente)
         enviar_mensaje_whatsapp(remitente, MENSAJE_BIENVENIDA_UNITY)
         return
@@ -662,7 +668,7 @@ def _manejar_texto_entrante(remitente: str, texto_usuario: str):
         enviar_mensaje_whatsapp(
             remitente,
             "El inventario de la farmacia aún se está sincronizando ⏳. "
-            "Por favor intenta de nuevo en unos minutos, escribe *Unity* para orientarte con nuestro asistente virtual 🩺, "
+            "Por favor intenta de nuevo en unos minutos, escribe *Unity* para hablar con tu guía de farmacia 🩺, "
             "o escribe *asesor* para hablar con nuestro equipo 👩‍⚕️."
         )
     else:
@@ -677,6 +683,7 @@ def inicio():
         "servicio": "Farmacia Unitas Norte Bot",
         "productos_cargados": len(INVENTARIO),
         "tasa_bs": TASA_BS,
+        "tasa_cop_por_usd": TASA_COP_POR_USD,
         "asistente_unity": "activo",
         "modelo_ia": "gemini-3.5-flash-lite",
     }
@@ -788,7 +795,7 @@ async def recibir_webhook(request: Request):
                         enviar_mensaje_whatsapp(
                             remitente,
                             "Por el momento solo puedo leer mensajes de texto o notas de voz 💬🎙️. "
-                            "Escríbeme el nombre del producto que buscas, escribe *Unity* para hablar con nuestro asistente virtual 🩺, "
+                            "Escríbeme el nombre del producto que buscas, escribe *Unity* para hablar con tu guía de farmacia 🩺, "
                             "o escribe *asesor* para hablar con nuestro equipo 👩‍⚕️."
                         )
                 except Exception as e:
