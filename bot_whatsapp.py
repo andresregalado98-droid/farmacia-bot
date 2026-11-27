@@ -12,7 +12,7 @@ app = FastAPI()
 TASA_COP_POR_USD = float(os.getenv("TASA_COP_POR_USD") or "0")
 
 MENSAJE_BIENVENIDA_UNITY = (
-    "¡Hola! 👋😊 Qué alegría saludarte. Soy *✨🤖 UNITY — TU GUÍA DE FARMACIA Y ASISTENTE VIRTUAL 🩺✨* al servicio de todos los clientes de *Farmacia Unitas Norte* (RIF: *J-298120886*) 🏥💙.\n\n"
+    "¡Hola! 👋😊 Qué alegría saludarte. Soy *✨🤖 UNITY — TU GUÍA DE FARMACIA Y ASISTENTE VIRTUAL 🩺✨* al servicio de todos los clientes de *Farmacia Unitas Norte C.A* (RIF: *J-298120886*) 🏥💙.\n\n"
     "Estoy aquí desde este primer mensaje para ayudarte y hacerte todo más fácil ✨. ¡Aprovecha al máximo todo lo que puedo hacer por ti!\n\n"
     "🔍 *1. Precios y disponibilidad al instante:* Escríbeme el nombre de uno o varios productos y te consulto su precio y disponibilidad al momento 💊✨.\n"
     "🩺 *2. Orientación en malestares leves:* Cuéntame si tienes algún malestar común (dolor de cabeza, acidez, congestión, etc.) y te oriento con opciones habituales y cuidados generales 🌿💧.\n"
@@ -24,11 +24,11 @@ MENSAJE_BIENVENIDA_UNITY = (
 )
 
 MENSAJE_BIENVENIDA_PRODUCTO = (
-    "¡Hola! 👋😊 Soy *✨🤖 UNITY — TU GUÍA DE FARMACIA Y ASISTENTE VIRTUAL 🩺✨* en *Farmacia Unitas Norte* (RIF: *J-298120886*) 🏥. Aquí tienes lo que encontré para ti:\n"
+    "¡Hola! 👋😊 Soy *✨🤖 UNITY — TU GUÍA DE FARMACIA Y ASISTENTE VIRTUAL 🩺✨* en *Farmacia Unitas Norte C.A* (RIF: *J-298120886*) 🏥. Aquí tienes lo que encontré para ti:\n"
 )
 
 MENSAJE_DESPEDIDA = (
-    "¡Muchas gracias por confiar en *Farmacia Unitas Norte* (RIF: *J-298120886*)! 💙✨\n"
+    "¡Muchas gracias por confiar en *Farmacia Unitas Norte C.A* (RIF: *J-298120886*)! 💙✨\n"
     "📍 *Nos encuentras en:* Calle 5 entre carreras 11 y 12 de La Concordia, media cuadra bajando del Hospital Central.\n\n"
     "Recuerda que sigo aquí como *✨🤖 UNITY — TU GUÍA DE FARMACIA Y ASISTENTE VIRTUAL 🩺✨* al servicio del cliente 🙌😊. "
     "Puedes escribirme o enviarme un audio 🎙️ con otro producto 💊, hacerme una consulta sobre algún malestar leve 🩺, "
