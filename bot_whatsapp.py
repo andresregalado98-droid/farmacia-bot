@@ -1,4 +1,5 @@
 import base64
+import json
 import os
 import re
 import time
@@ -17,8 +18,9 @@ MENSAJE_BIENVENIDA_UNITY = (
     "🔍 *1. Precios y disponibilidad al instante:* Escríbeme el nombre de uno o varios productos y te consulto su precio y disponibilidad al momento 💊✨.\n"
     "🩺 *2. Orientación en malestares leves:* Cuéntame si tienes algún malestar común (dolor de cabeza, acidez, congestión, etc.) y te oriento con opciones habituales y cuidados generales 🌿💧.\n"
     "🎙️ *3. ¡También entiendo notas de voz!:* Si vas ocupado o prefieres hablar, envíame un audio y te respondo igual de rápido 🗣️✨.\n"
-    "📍 *4. Ubicación, horario y cómo llegar:* Pregúntame dónde estamos y te envío nuestra dirección exacta, enlace de Google Maps 🗺️ y horario (*Lunes a Sábado: 7:00 AM a 10:30 PM | Domingo: Cerrado* ⏰).\n"
-    "👩‍⚕️ *5. Atención personalizada:* Si necesitas hablar con nuestro equipo de mostrador, solo escribe *asesor* en cualquier momento 🤝.\n\n"
+    "📸 *4. Lectura de récipes y fotos:* Envíame una foto de tu récipe médico, caja o lista y reviso los medicamentos en inventario al momento 📋💊.\n"
+    "📍 *5. Ubicación, horario y cómo llegar:* Pregúntame dónde estamos y te envío nuestra dirección exacta, enlace de Google Maps 🗺️ y horario (*Lunes a Sábado: 7:00 AM a 10:30 PM | Domingo: Cerrado* ⏰).\n"
+    "👩‍⚕️ *6. Atención personalizada:* Si necesitas hablar con nuestro equipo de mostrador, solo escribe *asesor* en cualquier momento 🤝.\n\n"
     "⚠️ *Compromiso sanitario (MPPS / Ley Orgánica de Drogas):* Puedo informarte precios y disponibilidad de inventario, pero por normativa vigente los *antibióticos*, *psicotrópicos* y *estupefacientes* nunca se recomiendan ni se indican por este medio; requieren prescripción e indicación de un *médico*.\n\n"
     "¿Qué producto buscas o en qué te puedo ayudar hoy? 💬😊"
 )
@@ -616,6 +618,7 @@ def consultar_asistente_unity(remitente: str, mensaje_usuario: str) -> str:
         "- Consulta rápida de precios y disponibilidad de inventario al momento, separando presentaciones como tabletas y suspensión 💊🧴✨.\n"
         "- Orientación cercana sobre malestares comunes leves y opciones habituales de venta libre (OTC) 🩺🌿.\n"
         "- Comprensión de notas de voz/audios enviados por WhatsApp 🎙️.\n"
+        "- Lectura de fotos de récipes médicos, cajas y listas de medicamentos 📋💊.\n"
         "- Envío de la ubicación exacta, enlace de Google Maps 📍 y horario de atención ⏰.\n"
         "- Atención personalizada con nuestro equipo escribiendo *asesor* 👩‍⚕️.\n\n"
         "UBICACIÓN Y HORARIO DE LA FARMACIA:\n"
@@ -689,7 +692,7 @@ def consultar_asistente_unity(remitente: str, mensaje_usuario: str) -> str:
     return respuesta_texto[:3800]
 
 
-def descargar_audio_whatsapp(media_id: str):
+def descargar_media_whatsapp(media_id: str, mime_por_defecto: str = "application/octet-stream"):
     token = (os.getenv("WHATSAPP_TOKEN") or "").strip()
     if not token or not media_id:
         return None, None
@@ -701,13 +704,17 @@ def descargar_audio_whatsapp(media_id: str):
     info = resp_meta.json()
 
     download_url = info.get("url")
-    mime_type = (info.get("mime_type") or "audio/ogg").split(";")[0].strip()
+    mime_type = (info.get("mime_type") or mime_por_defecto).split(";")[0].strip()
     if not download_url:
         return None, None
 
-    resp_audio = requests.get(download_url, headers=headers, timeout=20)
-    resp_audio.raise_for_status()
-    return resp_audio.content, mime_type
+    resp_media = requests.get(download_url, headers=headers, timeout=25)
+    resp_media.raise_for_status()
+    return resp_media.content, mime_type
+
+
+def descargar_audio_whatsapp(media_id: str):
+    return descargar_media_whatsapp(media_id, mime_por_defecto="audio/ogg")
 
 
 def transcribir_audio_gemini(audio_bytes: bytes, mime_type: str = "audio/ogg") -> str:
@@ -747,6 +754,169 @@ def transcribir_audio_gemini(audio_bytes: bytes, mime_type: str = "audio/ogg") -
         return ""
     partes = ((candidatos[0].get("content") or {}).get("parts")) or []
     return " ".join(p.get("text", "") for p in partes if p.get("text")).strip()
+
+
+def extraer_medicamentos_de_imagen_gemini(
+    image_bytes: bytes, mime_type: str = "image/jpeg", caption: str = ""
+) -> dict:
+    api_key = (os.getenv("GEMINI_API_KEY") or "").strip()
+    if not api_key or not image_bytes:
+        return {"medicamentos": [], "ilegibles": False}
+
+    b64_img = base64.b64encode(image_bytes).decode("utf-8")
+    instruccion = (
+        "Eres el lector visual de Farmacia Unitas Norte. "
+        "Analiza la imagen (puede ser un récipe médico, caja, blíster o lista de medicamentos). "
+        "Extrae ÚNICAMENTE los nombres de los medicamentos y su concentración/presentación si son legibles "
+        "(por ejemplo: 'Amoxicilina 500mg', 'Meloxicam 15mg', 'Ibuprofeno suspension'). "
+        "Reglas estrictas:\n"
+        "1. Responde SOLO con un objeto JSON válido con esta estructura exacta: "
+        '{"medicamentos": ["..."], "ilegibles": true/false}.\n'
+        "2. Si una palabra médica es dudosa o ilegible por caligrafía, NO la inventes; pon 'ilegibles': true.\n"
+        '3. Si no hay medicamentos ni texto médico en la imagen, devuelve {"medicamentos": [], "ilegibles": false}.'
+    )
+    if caption:
+        instruccion += f"\nTexto acompañante enviado por el cliente: {caption}"
+
+    payload = {
+        "contents": [
+            {
+                "parts": [
+                    {
+                        "inline_data": {
+                            "mime_type": mime_type or "image/jpeg",
+                            "data": b64_img,
+                        }
+                    },
+                    {"text": instruccion},
+                ]
+            }
+        ],
+        "generationConfig": {
+            "temperature": 0.1,
+            "responseMimeType": "application/json",
+        },
+    }
+
+    try:
+        data = _llamar_gemini_con_reintentos(payload, timeout=25, max_reintentos=2)
+    except Exception as e:
+        print(f"[ERROR IMAGEN API] {e}")
+        return {"medicamentos": [], "ilegibles": True}
+
+    candidatos = data.get("candidates") or []
+    if not candidatos:
+        return {"medicamentos": [], "ilegibles": True}
+
+    partes = ((candidatos[0].get("content") or {}).get("parts")) or []
+    texto_json = " ".join(
+        p.get("text", "") for p in partes
+        if isinstance(p, dict) and p.get("text") and not p.get("thought")
+    ).strip()
+
+    texto_json = re.sub(r"^```(?:json)?\s*|\s*```$", "", texto_json, flags=re.IGNORECASE).strip()
+    try:
+        parsed = json.loads(texto_json)
+        meds = parsed.get("medicamentos") or []
+        if not isinstance(meds, list):
+            meds = []
+        meds_limpios = [str(m).strip() for m in meds if str(m).strip()]
+        return {
+            "medicamentos": meds_limpios,
+            "ilegibles": bool(parsed.get("ilegibles", False)),
+        }
+    except Exception:
+        return {"medicamentos": [], "ilegibles": True}
+
+
+def _manejar_imagen_entrante(remitente: str, media_id: str, mime_type: str = "image/jpeg", caption: str = ""):
+    if not media_id:
+        return
+
+    if not (os.getenv("GEMINI_API_KEY") or "").strip():
+        print("[ERROR] Falta GEMINI_API_KEY en variables de entorno.")
+        enviar_mensaje_whatsapp(
+            remitente,
+            "¡Hola! 😊 Soy *✨🤖 UNITY — TU GUÍA DE FARMACIA Y ASISTENTE VIRTUAL 🩺✨*. En este momento no puedo analizar imágenes 🔧. "
+            "Escríbeme el nombre del medicamento que buscas 💊 o escribe *asesor* para recibir atención personalizada 👩‍⚕️🤝."
+        )
+        return
+
+    try:
+        img_bytes, mime_real = descargar_media_whatsapp(media_id, mime_por_defecto=mime_type or "image/jpeg")
+    except Exception as e:
+        print(f"[ERROR] Descargando imagen de WhatsApp: {e}")
+        enviar_mensaje_whatsapp(
+            remitente,
+            "¡Hola! 😊 Soy *✨🤖 UNITY — TU GUÍA DE FARMACIA Y ASISTENTE VIRTUAL 🩺✨*. No logré descargar tu imagen en este momento 📸😅. "
+            "Por favor inténtalo de nuevo, escríbeme el nombre del medicamento 💊 o escribe *asesor* 👩‍⚕️🤝."
+        )
+        return
+
+    if not img_bytes:
+        enviar_mensaje_whatsapp(
+            remitente,
+            "¡Hola! 😊 Soy *✨🤖 UNITY — TU GUÍA DE FARMACIA Y ASISTENTE VIRTUAL 🩺✨*. Recibí el archivo pero no pude abrir la imagen 📸😅. "
+            "¿Me la envías nuevamente o me escribes qué producto necesitas? 💬"
+        )
+        return
+
+    resultado_ocr = extraer_medicamentos_de_imagen_gemini(img_bytes, mime_real or "image/jpeg", caption=caption)
+    medicamentos = resultado_ocr.get("medicamentos") or []
+    hay_ilegibles = bool(resultado_ocr.get("ilegibles"))
+
+    if not medicamentos and not hay_ilegibles:
+        msg_sin_meds = (
+            "¡Hola! 👋😊 Soy *✨🤖 UNITY — TU GUÍA DE FARMACIA Y ASISTENTE VIRTUAL 🩺✨*. "
+            "Recibí tu foto 📸, pero no logré identificar nombres de medicamentos ni un récipe legible.\n\n"
+            "Puedes enviarme una imagen más clara del récipe o la caja 📋💊, escribirme el producto que buscas 💬 "
+            "o escribir *asesor* para recibir atención personalizada 👩‍⚕️🤝."
+        )
+        _registrar_turno_unity(remitente, f"[Imagen enviada: {caption or 'sin texto'}]", msg_sin_meds)
+        enviar_mensaje_whatsapp(remitente, msg_sin_meds)
+        return
+
+    if medicamentos and INVENTARIO:
+        respuesta_inv = responder_consulta_productos(medicamentos)
+        if respuesta_inv:
+            if hay_ilegibles:
+                nota_ileg = (
+                    "\n⚠️ *Nota sobre el récipe:* Algunos términos de la imagen no se leyeron con claridad y preferí no adivinarlos por seguridad. "
+                    "Si gustas, escríbelos por aquí o acércate a nuestra sede para revisarlo con nuestro equipo 🩺.\n"
+                )
+                respuesta_inv = respuesta_inv.replace(
+                    MENSAJE_DESPEDIDA,
+                    f"{nota_ileg}\n{MENSAJE_DESPEDIDA}",
+                    1,
+                )
+            _registrar_turno_unity(
+                remitente,
+                f"[Imagen con medicamentos: {', '.join(medicamentos)}]",
+                respuesta_inv,
+            )
+            enviar_mensaje_whatsapp(remitente, respuesta_inv)
+            return
+
+    contexto_partes = []
+    if medicamentos:
+        contexto_partes.append(
+            "Medicamentos extraídos de la imagen (sin coincidencia exacta cargada en este momento en el inventario): "
+            + ", ".join(medicamentos)
+        )
+    if hay_ilegibles:
+        contexto_partes.append(
+            "Había partes ilegibles o dudosas en la imagen y no se adivinaron para evitar errores."
+        )
+
+    prompt_img = (
+        f"El cliente envió una foto de un récipe o medicamento (caption: '{caption}'). "
+        + " ".join(contexto_partes)
+        + " Responde de forma cálida y clara como Unity, indica cuáles medicamentos se leyeron en la imagen, "
+        "si no aparecen cargados en el inventario actual sugiere escribir *asesor* para confirmar existencia en mostrador, "
+        "y recuerda las reglas de dispensación si alguno es antibiótico, psicotrópico o estupefaciente."
+    )
+    respuesta_unity = consultar_asistente_unity(remitente, prompt_img)
+    enviar_mensaje_whatsapp(remitente, respuesta_unity)
 
 
 def enviar_mensaje_whatsapp(telefono_destino: str, mensaje: str):
@@ -899,6 +1069,13 @@ async def recibir_webhook(request: Request):
                         texto_usuario = (msg.get("text") or {}).get("body", "")
                         _manejar_texto_entrante(remitente, texto_usuario)
 
+                    elif tipo == "image":
+                        img_data = msg.get("image") or {}
+                        media_id = str(img_data.get("id") or "").strip()
+                        mime_type = (img_data.get("mime_type") or "image/jpeg").split(";")[0].strip()
+                        caption = (img_data.get("caption") or "").strip()
+                        _manejar_imagen_entrante(remitente, media_id, mime_type=mime_type, caption=caption)
+
                     elif tipo == "audio":
                         media_id = ((msg.get("audio") or {}).get("id") or "").strip()
                         if not (os.getenv("GEMINI_API_KEY") or "").strip():
@@ -921,7 +1098,7 @@ async def recibir_webhook(request: Request):
                         enviar_mensaje_whatsapp(
                             remitente,
                             "¡Hola! 👋😊 Soy *✨🤖 UNITY — TU GUÍA DE FARMACIA Y ASISTENTE VIRTUAL 🩺✨* al servicio de *Farmacia Unitas Norte* 🏥. "
-                            "Por el momento solo puedo leer mensajes de texto o notas de voz 💬🎙️. "
+                            "Por el momento puedo atender mensajes de texto, notas de voz y fotos de récipes o medicamentos 💬🎙️📸. "
                             "Escríbeme el producto que buscas 💊, cuéntame tu consulta de bienestar 🩺 o escribe *asesor* para recibir atención personalizada 👩‍⚕️."
                         )
                 except Exception as e:
