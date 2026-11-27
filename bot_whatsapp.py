@@ -11,57 +11,47 @@ app = FastAPI()
 
 TASA_COP_POR_USD = float(os.getenv("TASA_COP_POR_USD") or "0")
 
-MENSAJE_BIENVENIDA = (
-    "¡Hola! 👋 Bienvenido a *Farmacia Unitas Norte* (RIF: *J-298120886*) 🏥✨.\n"
-    "Escríbeme el nombre del medicamento o producto que deseas consultar 💊🔍.\n"
-    "• *✨ UNITY — TU GUÍA DE FARMACIA Y AMIGO DE SALUD ✨:* ¿Tienes algún malestar leve, dudas sobre opciones de venta libre o quieres conversar sobre tu bienestar? Escribe *Unity* para chatear con él 🩺💬.\n"
-    "• Si necesitas atención personalizada, escribe *asesor* y nuestro equipo te atenderá con gusto 👩‍⚕️🤝."
+MENSAJE_BIENVENIDA_UNITY = (
+    "¡Hola! 👋😊 Qué alegría saludarte. Soy *Unity*, *tu asistente virtual y guía de farmacia* al servicio de todos los clientes de *Farmacia Unitas Norte* (RIF: *J-298120886*) 🏥💙.\n\n"
+    "Estoy aquí desde este primer mensaje para ayudarte y hacerte todo más fácil ✨. ¡Aprovecha al máximo todo lo que puedo hacer por ti!\n\n"
+    "🔍 *1. Precios y disponibilidad al instante:* Escríbeme el nombre de uno o varios productos y te doy su precio en USD, Bolívares y Pesos Colombianos 💊💵.\n"
+    "🩺 *2. Orientación en malestares leves:* Cuéntame si tienes algún malestar común (dolor de cabeza, acidez, congestión, etc.) y te oriento con opciones habituales de venta libre y cuidados generales 🌿💧.\n"
+    "🎙️ *3. ¡También entiendo notas de voz!:* Si vas ocupado o prefieres hablar, envíame un audio y te respondo igual de rápido 🗣️✨.\n"
+    "📍 *4. Ubicación y cómo llegar:* Pregúntame dónde estamos y te envío nuestra dirección exacta y el enlace directo de Google Maps 🗺️.\n"
+    "👩‍⚕️ *5. Atención humana personalizada:* Si necesitas hablar con nuestro equipo de mostrador, solo escribe *asesor* en cualquier momento 🤝.\n\n"
+    "⚠️ *Compromiso sanitario (MPPS / Ley Orgánica de Drogas):* Por tu seguridad y la ley vigente, los *estupefacientes*, *psicotrópicos*, *medicamentos controlados*, *antibióticos* y fármacos con récipe deben ser indicados estrictamente por un *médico*.\n\n"
+    "¿Qué producto buscas o en qué te puedo ayudar hoy? 💬😊"
 )
 
 MENSAJE_BIENVENIDA_PRODUCTO = (
-    "¡Hola! 👋 Gracias por escribir a *Farmacia Unitas Norte* (RIF: *J-298120886*) 🏥✨.\n"
+    "¡Hola! 👋😊 Soy *Unity*, tu asistente virtual en *Farmacia Unitas Norte* (RIF: *J-298120886*) 🏥✨. Aquí tienes lo que encontré para ti:\n"
 )
 
 MENSAJE_DESPEDIDA = (
-    "¡Gracias por preferir a *Farmacia Unitas Norte* (RIF: *J-298120886*)! 💙✨\n"
-    "📍 *Ubicación:* Calle 5 entre carreras 11 y 12 de La Concordia, media cuadra bajando del Hospital Central.\n\n"
-    "Estamos siempre a tu orden 🙌. Si deseas consultar otro producto, solo escríbeme su nombre 💊, "
-    "escribe *Unity* para hablar con tu guía de farmacia 🩺, "
-    "o escribe *asesor* y serás atendido por nuestro personal 👩‍⚕️. ¡Que tengas un excelente día! ☀️😊"
+    "¡Muchas gracias por confiar en *Farmacia Unitas Norte* (RIF: *J-298120886*)! 💙✨\n"
+    "📍 *Nos encuentras en:* Calle 5 entre carreras 11 y 12 de La Concordia, media cuadra bajando del Hospital Central.\n\n"
+    "Recuerda que sigo aquí como *Unity*, tu asistente virtual al servicio del cliente 🙌😊. "
+    "Puedes escribirme o enviarme un audio 🎙️ con otro producto 💊, hacerme una consulta sobre algún malestar leve 🩺, "
+    "o escribir *asesor* para hablar con nuestro equipo 👩‍⚕️. ¡Que tengas un excelente día! ☀️💛"
 )
 
 MENSAJE_ASESOR = (
-    "En un momento te comunicaremos con un asesor de *Farmacia Unitas Norte* "
-    "(RIF: *J-298120886*) para ayudarte 👩‍⚕️💬."
-)
-
-MENSAJE_BIENVENIDA_UNITY = (
-    "¡Hola! 😊 Soy *Unity*, *tu guía de farmacia y amigo de salud* en *Farmacia Unitas Norte* (RIF: *J-298120886*) 💙.\n\n"
-    "Estoy aquí para acompañarte y orientarte con:\n"
-    "• Conversación cercana sobre malestares comunes leves 🩺💬\n"
-    "• Opciones habituales de venta libre y cuidados generales 💊🌿\n"
-    "• Consulta de precios, disponibilidad y cómo llegar a nuestra farmacia 🛒📍\n\n"
-    "⚠️ *Normativa sanitaria (MPPS / Ley Orgánica de Drogas):* Los *estupefacientes*, *psicotrópicos*, *medicamentos controlados*, *antibióticos* y fármacos sujetos a prescripción requieren evaluación e indicación estricta de un *médico* conforme a la normativa vigente.\n\n"
-    "¿Cómo te sientes hoy o qué malestar quieres que conversemos? ✨\n"
-    "_(Escribe *salir* para volver al buscador o *asesor* para hablar con nuestro equipo)_."
-)
-
-MENSAJE_SALIDA_UNITY = (
-    "Has salido del chat con *Unity*, tu guía de farmacia 👋💙. "
-    "Ahora puedes escribir directamente el nombre del producto que buscas o escribir *asesor* 💊."
+    "¡Con mucho gusto! 🤝😊 En un momento te comunicaremos con un asesor humano de *Farmacia Unitas Norte* "
+    "(RIF: *J-298120886*) para brindarte atención personalizada 👩‍⚕️💬."
 )
 
 MENSAJE_BLOQUEO_CONTROLADOS = (
-    "⚠️ *Restricción sanitaria (MPPS / Ley Orgánica de Drogas):*\n"
-    "Como tu guía de farmacia, por regulación farmacéutica vigente no puedo recomendar, indicar ni dar pautas de uso sobre *medicamentos controlados, estupefacientes, psicotrópicos ni antibióticos*.\n\n"
-    "Estos fármacos requieren valoración e indicación directa de un *médico* y cumplir con los requisitos de prescripción/dispensación establecidos.\n"
-    "Si deseas comunicarte con nuestro equipo, escribe *asesor* (o *salir* para volver al buscador)."
+    "⚠️ *Aviso importante de salud (MPPS / Ley Orgánica de Drogas):*\n"
+    "Como *Unity*, tu asistente virtual al servicio del cliente, cuido tu bienestar y cumplo con la regulación farmacéutica vigente 💙. "
+    "Por ello, no puedo recomendar, indicar ni dar pautas de uso sobre *medicamentos controlados, estupefacientes, psicotrópicos ni antibióticos* 🚫💊.\n\n"
+    "Estos fármacos requieren valoración e indicación directa de un *médico* y cumplir con los requisitos de prescripción establecidos 🩺.\n"
+    "Si deseas que nuestro equipo te oriente sobre los requisitos de dispensación en farmacia, escribe *asesor* 👩‍⚕️🤝."
 )
 
 INVENTARIO = []
 TASA_BS = 0.0
 SESIONES_UNITY = {}
-TIMEOUT_UNITY_SEGUNDOS = 20 * 60
+TIMEOUT_UNITY_SEGUNDOS = 30 * 60
 
 MENSAJES_PROCESADOS = {}
 TTL_MENSAJES_SEGUNDOS = 300
@@ -131,23 +121,22 @@ def _limpiar_sesiones_expiradas():
         SESIONES_UNITY.pop(tel, None)
 
 
-def _unity_activo(remitente: str) -> bool:
+def _obtener_sesion_unity(remitente: str) -> dict:
     _limpiar_sesiones_expiradas()
-    sesion = SESIONES_UNITY.get(remitente)
-    if not sesion:
-        return False
+    sesion = SESIONES_UNITY.setdefault(remitente, {"ultimo_uso": time.time(), "historial": []})
     sesion["ultimo_uso"] = time.time()
-    return True
+    return sesion
 
 
-def _activar_unity(remitente: str):
-    SESIONES_UNITY[remitente] = {
-        "ultimo_uso": time.time(),
-        "historial": [],
-    }
+def _registrar_turno_unity(remitente: str, mensaje_usuario: str, respuesta_bot: str):
+    sesion = _obtener_sesion_unity(remitente)
+    historial = sesion.get("historial", [])
+    historial.append({"role": "user", "text": mensaje_usuario.strip()})
+    historial.append({"role": "model", "text": respuesta_bot.strip()})
+    sesion["historial"] = historial[-8:]
 
 
-def _desactivar_unity(remitente: str):
+def _reiniciar_sesion_unity(remitente: str):
     SESIONES_UNITY.pop(remitente, None)
 
 
@@ -164,33 +153,55 @@ def _contiene_medicamento_restringido(texto: str) -> bool:
     return False
 
 
+def _es_consulta_conversacional(texto_norm: str) -> bool:
+    """Detecta si el usuario está haciendo una pregunta abierta, pidiendo orientación de síntomas, funciones o ubicación."""
+    indicadores_conversacion = (
+        "?", "¿", "dolor", "fiebre", "gripe", "tos", "acidez", "alergia",
+        "malestar", "sintoma", "síntoma", "mareo", "nausea", "náusea",
+        "diarrea", "estomago", "estómago", "cabeza", "garganta", "congestion",
+        "congestión", "recomienda", "recomiendas", "sirve para", "que puedo tomar",
+        "qué puedo tomar", "que me tomo", "qué me tomo", "como se toma",
+        "cómo se toma", "para que sirve", "para qué sirve", "ubicacion",
+        "ubicación", "direccion", "dirección", "donde quedan", "dónde quedan",
+        "como llegar", "cómo llegar", "horario", "abiertos", "trabajan",
+        "pesos", "colombianos", "cop", "bolivares", "bolívares", "tasa",
+        "que haces", "qué haces", "funciones", "ayudar", "quien eres", "quién eres"
+    )
+    return any(ind in texto_norm for ind in indicadores_conversacion)
+
+
 def procesar_mensaje_usuario(texto: str):
     texto_limpio = (texto or "").strip()
     if not texto_limpio:
-        return MENSAJE_BIENVENIDA, None
+        return MENSAJE_BIENVENIDA_UNITY, None
 
     minuscula = _normalizar(texto_limpio)
 
     saludos = (
         "buenos dias", "buen dia", "buenas tardes", "buena tarde",
-        "buenas noches", "buena noche", "que tal", "buenas", "saludos", "hola"
+        "buenas noches", "buena noche", "que tal", "buenas", "saludos", "hola",
+        "unity", "hola unity", "guia de farmacia", "amigo de salud", "asistente",
+        "asistente virtual", "menu", "inicio"
     )
     despedidas_exactas = {
         "gracias", "muchas gracias", "adios",
-        "hasta luego", "chao", "bye", "listo gracias"
+        "hasta luego", "chao", "bye", "listo gracias", "mil gracias"
     }
 
     texto_plano = re.sub(r"[^\w\s]", " ", minuscula)
     texto_plano = re.sub(r"\s+", " ", texto_plano).strip()
 
-    if not texto_plano:
-        return MENSAJE_BIENVENIDA, None
+    if not texto_plano or texto_plano in saludos:
+        return MENSAJE_BIENVENIDA_UNITY, None
 
     if texto_plano in despedidas_exactas:
         return MENSAJE_DESPEDIDA, None
 
     if texto_plano in ("asesor", "humano", "agente", "persona"):
         return MENSAJE_ASESOR, None
+
+    if _es_consulta_conversacional(minuscula):
+        return None, None
 
     relleno = {
         "tienen", "tiene", "tenes", "tenés", "hay", "habra", "habrá",
@@ -247,11 +258,9 @@ def procesar_mensaje_usuario(texto: str):
                 terminos.append(termino)
 
     if not terminos:
-        if texto_plano in saludos:
-            return MENSAJE_BIENVENIDA, None
         palabras_sueltas = [p for p in texto_plano.split() if p not in relleno and p not in saludos]
         if not palabras_sueltas:
-            return MENSAJE_BIENVENIDA, None
+            return MENSAJE_BIENVENIDA_UNITY, None
         return None, [" ".join(palabras_sueltas)]
 
     return None, terminos
@@ -320,6 +329,8 @@ def buscar_productos(termino: str, limite: int = 8) -> list:
         if all(pal in desc_norm or pal in codigo_norm for pal in palabras):
             usd = _a_numero(item.get("usd") if item.get("usd") is not None else item.get("precio_usd"))
             cop = _a_numero(item.get("cop") if item.get("cop") is not None else item.get("precio_cop"))
+            if cop <= 0 and usd > 0 and TASA_COP_POR_USD > 0:
+                cop = round(usd * TASA_COP_POR_USD, 0)
             bs = _a_numero(item.get("bs") if item.get("bs") is not None else item.get("precio_bs"))
             if bs <= 0 and usd > 0 and TASA_BS > 0:
                 bs = round(usd * TASA_BS, 2)
@@ -338,18 +349,9 @@ def buscar_productos(termino: str, limite: int = 8) -> list:
 
 
 def formatear_respuesta_productos(termino: str, productos: list) -> str:
-    if not productos:
-        return (
-            f"{MENSAJE_BIENVENIDA_PRODUCTO}"
-            f"No encontré resultados para *{termino}* en este momento 🔎. "
-            f"Verifica el nombre del producto, escribe *Unity* para hablar con tu guía de farmacia 🩺, "
-            f"o escribe *asesor* y pronto serás atendido por nuestro personal 👩‍⚕️.\n\n"
-            f"{MENSAJE_DESPEDIDA}"
-        )
-
     lineas = [
         f"{MENSAJE_BIENVENIDA_PRODUCTO}",
-        f"Resultados para *{termino}*:\n",
+        f"🔎 *Resultados para {termino}:*\n",
     ]
     for p in productos[:5]:
         usd = float(p.get("usd") or 0.0)
@@ -358,8 +360,8 @@ def formatear_respuesta_productos(termino: str, productos: list) -> str:
         desc = str(p.get("descripcion") or "Producto")
         codigo = str(p.get("codigo") or "N/A")
         lineas.append(
-            f"• *{desc}* (Cód: {codigo})\n"
-            f"  USD: ${usd:.2f} | Bs. {bs:,.2f} | COP {cop:,.0f}"
+            f"💊 *{desc}* (Cód: {codigo})\n"
+            f"   💵 USD: ${usd:.2f} | 🇻🇪 Bs. {bs:,.2f} | 🇨🇴 COP {cop:,.0f}"
         )
 
     lineas.append(f"\n{MENSAJE_DESPEDIDA}")
@@ -367,21 +369,26 @@ def formatear_respuesta_productos(termino: str, productos: list) -> str:
     return texto_final[:3800]
 
 
-def responder_consulta_productos(termino_o_lista) -> str:
+def responder_consulta_productos(termino_o_lista):
+    """Devuelve texto formateado si encuentra productos en inventario; devuelve None si no hubo coincidencias."""
     terminos = termino_o_lista if isinstance(termino_o_lista, list) else [termino_o_lista]
 
     if len(terminos) == 1:
         termino = terminos[0]
         encontrados = buscar_productos(termino)
+        if not encontrados:
+            return None
         return formatear_respuesta_productos(termino, encontrados)
 
+    alguno_encontrado = False
     bloques = [f"{MENSAJE_BIENVENIDA_PRODUCTO}"]
     for term in terminos:
         encontrados = buscar_productos(term)
-        bloques.append(f"*Consulta: {term}*")
+        bloques.append(f"🔎 *Consulta: {term}*")
         if not encontrados:
-            bloques.append(f"No encontré resultados para *{term}* en este momento.\n")
+            bloques.append(f"No encontré coincidencias exactas para *{term}* en este momento 😅.\n")
         else:
+            alguno_encontrado = True
             for p in encontrados[:4]:
                 usd = float(p.get("usd") or 0.0)
                 bs = float(p.get("bs") or 0.0)
@@ -389,23 +396,38 @@ def responder_consulta_productos(termino_o_lista) -> str:
                 desc = str(p.get("descripcion") or "Producto")
                 codigo = str(p.get("codigo") or "N/A")
                 bloques.append(
-                    f"• *{desc}* (Cód: {codigo})\n"
-                    f"  USD: ${usd:.2f} | Bs. {bs:,.2f} | COP {cop:,.0f}"
+                    f"💊 *{desc}* (Cód: {codigo})\n"
+                    f"   💵 USD: ${usd:.2f} | 🇻🇪 Bs. {bs:,.2f} | 🇨🇴 COP {cop:,.0f}"
                 )
             bloques.append("")
+
+    if not alguno_encontrado:
+        return None
 
     bloques.append(MENSAJE_DESPEDIDA)
     return "\n".join(bloques)[:3800]
 
 
+def _extraer_palabras_clave_inventario(consulta: str) -> list:
+    norm = _normalizar(consulta)
+    norm_plano = re.sub(r"[^\w\s]", " ", norm)
+    stop = {
+        "hola", "unity", "tienen", "tiene", "hay", "busco", "necesito", "quiero",
+        "precio", "precios", "cuanto", "cuesta", "vale", "pesos", "colombianos",
+        "cop", "bolivares", "dolares", "para", "como", "donde", "que", "con",
+        "sin", "por", "favor", "una", "uno", "unos", "unas", "los", "las", "del"
+    }
+    return [p for p in norm_plano.split() if len(p) >= 3 and p not in stop][:5]
+
+
 def _buscar_contexto_inventario_para_unity(consulta: str) -> str:
     if not INVENTARIO:
         return ""
-    _, terminos = procesar_mensaje_usuario(consulta)
-    if not terminos:
+    palabras = _extraer_palabras_clave_inventario(consulta)
+    if not palabras:
         return ""
     resultados = []
-    for term in terminos[:3]:
+    for term in palabras:
         for p in buscar_productos(term, limite=3):
             cop_val = float(p.get("cop") or 0.0)
             if cop_val <= 0 and p["usd"] > 0 and TASA_COP_POR_USD > 0:
@@ -462,31 +484,37 @@ def consultar_asistente_unity(remitente: str, mensaje_usuario: str) -> str:
     api_key = (os.getenv("GEMINI_API_KEY") or "").strip()
     if not api_key:
         return (
-            "En este momento *Unity* no está disponible. "
-            "Escribe *asesor* para hablar con nuestro equipo o *salir* para buscar productos."
+            "¡Hola! 👋 Soy *Unity*, tu asistente virtual. En este momento estoy en mantenimiento técnico 🔧😊. "
+            "Escribe *asesor* para hablar directamente con nuestro equipo 👩‍⚕️🤝."
         )
 
-    sesion = SESIONES_UNITY.setdefault(remitente, {"ultimo_uso": time.time(), "historial": []})
-    sesion["ultimo_uso"] = time.time()
+    sesion = _obtener_sesion_unity(remitente)
     historial = sesion.get("historial", [])
 
     contexto_inv = _buscar_contexto_inventario_para_unity(mensaje_usuario)
 
     instrucciones_sistema = (
-        "Eres Unity, la guía de farmacia y amigo de salud cercano y confiable de Farmacia Unitas Norte (RIF: J-298120886) en Venezuela. "
+        "Eres Unity, el asistente virtual y guía de farmacia cercano, ameno y humanizado al servicio de todos los clientes de Farmacia Unitas Norte (RIF: J-298120886) en Venezuela. "
+        "Atiendes al cliente desde el inicio de la conversación. Siempre que te presentes o sea oportuno, identifícate con calidez como Unity, tu asistente virtual al servicio del cliente. "
         "Operas bajo los criterios generales de orientación sanitaria alineados con la normativa del Ministerio del Poder Popular para la Salud (MPPS) y la Ley Orgánica de Drogas en Venezuela. "
-        "Responde siempre en español con un tono ameno, cálido, empático y útil para WhatsApp (unos 130-180 palabras), usando viñetas cortas, negritas simples con *asteriscos* y emoticones naturales donde aporten claridad (como 🩺, 💊, 💧, 🌿, 📍, ✨, 💙, ⚠️). "
+        "Responde siempre en español con un tono muy humano, cercano, cálido, empático y conversacional para WhatsApp (unos 140-190 palabras), usando viñetas claras, negritas simples con *asteriscos* y bastantes emoticones naturales y expresivos (como 👋, 😊, 🩺, 💊, 💧, 🌿, 📍, ✨, 💙, 🎙️, 👩‍⚕️, ⚠️). "
         "NUNCA uses expresiones como 'medicamentos sencillos' ni 'productos sencillos', ni te presentes como médico.\n\n"
+        "FUNCIONES DE UNITY (PARA EXPLICARLAS SI EL CLIENTE PREGUNTA QUÉ HACES O CÓMO APROVECHARTE):\n"
+        "- Consulta rápida de precios y disponibilidad de inventario en USD, Bolívares y Pesos Colombianos 💊💵.\n"
+        "- Orientación cercana sobre malestares comunes leves y opciones habituales de venta libre (OTC) 🩺🌿.\n"
+        "- Comprensión de notas de voz/audios enviados por WhatsApp 🎙️.\n"
+        "- Envío de la ubicación exacta y enlace de Google Maps 📍.\n"
+        "- Conexión inmediata con un asesor humano escribiendo *asesor* 👩‍⚕️.\n\n"
         "UBICACIÓN DE LA FARMACIA:\n"
-        "- Si el usuario pregunta dónde queda, la dirección o cómo llegar a Farmacia Unitas Norte, respóndele con entusiasmo dando la dirección exacta: *Calle 5 entre carreras 11 y 12 de La Concordia, media cuadra bajando del Hospital Central* 📍, e incluye siempre este enlace directo de Google Maps: https://maps.app.goo.gl/4gkAosGHE3Swu4js5\n\n"
+        "- Si el usuario pregunta dónde queda, la dirección o cómo llegar a Farmacia Unitas Norte, respóndele con mucho entusiasmo dando la dirección exacta: *Calle 5 entre carreras 11 y 12 de La Concordia, media cuadra bajando del Hospital Central* 📍, e incluye siempre este enlace directo de Google Maps: https://maps.app.goo.gl/4gkAosGHE3Swu4js5\n\n"
         "REGLAS NORMATIVAS Y DE SEGURIDAD:\n"
-        "1. NUNCA recomiendes, prescribas ni des dosis o pautas de uso de MEDICAMENTOS CONTROLADOS, ESTUPEFACIENTES, PSICOTRÓPICOS o ANTIBIÓTICOS, ni de fármacos sujetos a récipe médico. Si el usuario consulta sobre alguno, indica con claridad que debe acudir a un médico y cumplir con los requisitos de prescripción/dispensación vigentes.\n"
-        "2. Ante malestares leves comunes (dolor de cabeza leve, malestar estomacal ocasional, acidez, congestión leve o cansancio), desarrolla una respuesta amena sugiriendo directamente opciones habituales de venta libre (OTC) y medidas generales de alivio (sin diagnosticar ni dar dosis fijas como consulta médica).\n"
+        "1. NUNCA recomiendes, prescribas ni des dosis o pautas de uso de MEDICAMENTOS CONTROLADOS, ESTUPEFACIENTES, PSICOTRÓPICOS o ANTIBIÓTICOS, ni de fármacos sujetos a récipe médico. Si el usuario consulta sobre alguno, indica con amabilidad y claridad que debe acudir a un médico y cumplir con los requisitos de prescripción/dispensación vigentes.\n"
+        "2. Ante malestares leves comunes (dolor de cabeza leve, malestar estomacal ocasional, acidez, congestión leve o cansancio), desarrolla una respuesta amena y empática sugiriendo directamente opciones habituales de venta libre (OTC) y medidas generales de alivio (sin diagnosticar ni dar dosis fijas como consulta médica).\n"
         "3. Al mencionar opciones de venta libre, recuerda revisar el prospecto y consultar al médico o farmacéutico, especialmente en niños, embarazo, lactancia, adultos mayores o condiciones crónicas.\n"
         "4. Si hay señales de alarma o gravedad, recomienda buscar atención médica de inmediato.\n"
-        "5. Si hay productos en el contexto de inventario y no están restringidos, intégralos de forma natural con su precio.\n"
-        "6. NUNCA calcules, estimes ni inventes precios en pesos colombianos (COP). Usa únicamente el monto en COP que aparezca explícitamente en el contexto de inventario; si no aparece un monto en COP disponible, indica el precio en USD y Bs. y sugiere consultar el producto directo en el chat o escribir *asesor* para confirmar el monto en COP.\n"
-        "7. Cierra de manera amable recordando que puede escribir *asesor* para atención personalizada o *salir* para volver al buscador."
+        "5. Si hay productos en el contexto de inventario y no están restringidos, intégralos de forma natural con su precio. Si el usuario preguntó por un producto específico que no aparece en el contexto de inventario, infórmale con calidez que no aparece cargado en este momento y sugiérele escribir *asesor* para verificar existencia física en mostrador.\n"
+        "6. NUNCA calcules, estimes ni inventes precios en pesos colombianos (COP). Usa únicamente el monto en COP que aparezca explícitamente en el contexto de inventario; si no aparece un monto en COP disponible, indica el precio en USD y Bs. y sugiere escribir *asesor* para confirmar el monto en COP.\n"
+        "7. Cierra siempre de forma cercana recordando que sigues a su servicio como *Unity*, su asistente virtual, y que puede enviarte otro producto, una nota de voz 🎙️ o escribir *asesor* para atención humana 👩‍⚕️."
     )
 
     prompt_usuario = mensaje_usuario.strip()
@@ -494,7 +522,7 @@ def consultar_asistente_unity(remitente: str, mensaje_usuario: str) -> str:
         prompt_usuario = f"{prompt_usuario}\n\n[Contexto interno de inventario]\n{contexto_inv}"
 
     contents = []
-    for turno in historial[-6:]:
+    for turno in historial[-8:]:
         contents.append({"role": turno["role"], "parts": [{"text": turno["text"]}]})
     contents.append({"role": "user", "parts": [{"text": prompt_usuario}]})
 
@@ -502,7 +530,7 @@ def consultar_asistente_unity(remitente: str, mensaje_usuario: str) -> str:
         "system_instruction": {"parts": [{"text": instrucciones_sistema}]},
         "contents": contents,
         "generationConfig": {
-            "temperature": 0.45,
+            "temperature": 0.5,
             "maxOutputTokens": 950,
         },
     }
@@ -512,8 +540,8 @@ def consultar_asistente_unity(remitente: str, mensaje_usuario: str) -> str:
     except Exception as e:
         print(f"[ERROR UNITY API] {e}")
         return (
-            "La línea con *Unity*, tu guía de farmacia, está un poco ocupada en este momento 😊. "
-            "Intenta de nuevo en unos segundos o escribe *asesor* para que te atienda nuestro equipo."
+            "¡Hola! 😊 Soy *Unity*, tu asistente virtual. Mi conexión está un poquito ocupada en este instante 🔄. "
+            "Por favor intenta de nuevo en unos segundos o escribe *asesor* para que nuestro equipo te atienda enseguida 👩‍⚕️💙."
         )
 
     candidatos = data.get("candidates") or []
@@ -521,8 +549,8 @@ def consultar_asistente_unity(remitente: str, mensaje_usuario: str) -> str:
         bloqueo = (data.get("promptFeedback") or {}).get("blockReason")
         print(f"[WARN UNITY] Sin candidatos. blockReason={bloqueo}")
         return (
-            "Por normativa y seguridad, no pude procesar esa consulta de forma automática ⚠️. "
-            "Escribe *asesor* para hablar con nuestro equipo o *salir* para volver al buscador."
+            "Por normativa y seguridad sanitaria, no pude procesar esa consulta de forma automática ⚠️😊. "
+            "Escribe *asesor* para hablar directamente con nuestro equipo 👩‍⚕️🤝."
         )
 
     cand0 = candidatos[0]
@@ -536,14 +564,11 @@ def consultar_asistente_unity(remitente: str, mensaje_usuario: str) -> str:
     if not respuesta_texto:
         print(f"[WARN UNITY] Texto vacío. finishReason={fin}")
         return (
-            "No pude completar esa orientación ahora mismo 😊. "
-            "Intenta formularla de otra forma o escribe *asesor* para atención directa."
+            "¡Disculpa! 😊 No logré completar esa orientación ahora mismo. "
+            "Intenta escribirla de otra forma o escribe *asesor* para recibir atención directa de nuestro equipo 👩‍⚕️💙."
         )
 
-    historial.append({"role": "user", "text": mensaje_usuario.strip()})
-    historial.append({"role": "model", "text": respuesta_texto})
-    sesion["historial"] = historial[-6:]
-
+    _registrar_turno_unity(remitente, mensaje_usuario, respuesta_texto)
     return respuesta_texto[:3800]
 
 
@@ -639,41 +664,25 @@ def _manejar_texto_entrante(remitente: str, texto_usuario: str):
     norm_plano = re.sub(r"\s+", " ", norm_plano).strip()
 
     if norm_plano in ("asesor", "humano", "agente", "persona"):
-        _desactivar_unity(remitente)
+        _reiniciar_sesion_unity(remitente)
         enviar_mensaje_whatsapp(remitente, MENSAJE_ASESOR)
         return
 
-    if norm_plano in ("unity", "hola unity", "asistente", "asistente virtual", "amigo de salud", "guia de farmacia"):
-        _activar_unity(remitente)
-        enviar_mensaje_whatsapp(remitente, MENSAJE_BIENVENIDA_UNITY)
+    respuesta_directa, terminos = procesar_mensaje_usuario(texto_limpio)
+    if respuesta_directa:
+        _registrar_turno_unity(remitente, texto_limpio, respuesta_directa)
+        enviar_mensaje_whatsapp(remitente, respuesta_directa)
         return
 
-    if _unity_activo(remitente):
-        if norm_plano in ("salir", "menu", "volver", "cerrar", "fin", "terminar", "gracias", "muchas gracias", "adios", "chao"):
-            _desactivar_unity(remitente)
-            if norm_plano in ("gracias", "muchas gracias", "adios", "chao"):
-                enviar_mensaje_whatsapp(remitente, MENSAJE_DESPEDIDA)
-            else:
-                enviar_mensaje_whatsapp(remitente, MENSAJE_SALIDA_UNITY)
+    if terminos and INVENTARIO:
+        respuesta_productos = responder_consulta_productos(terminos)
+        if respuesta_productos:
+            _registrar_turno_unity(remitente, texto_limpio, respuesta_productos)
+            enviar_mensaje_whatsapp(remitente, respuesta_productos)
             return
 
-        respuesta_unity = consultar_asistente_unity(remitente, texto_limpio)
-        enviar_mensaje_whatsapp(remitente, respuesta_unity)
-        return
-
-    respuesta_directa, termino = procesar_mensaje_usuario(texto_limpio)
-    if respuesta_directa:
-        enviar_mensaje_whatsapp(remitente, respuesta_directa)
-    elif not INVENTARIO:
-        enviar_mensaje_whatsapp(
-            remitente,
-            "El inventario de la farmacia aún se está sincronizando ⏳. "
-            "Por favor intenta de nuevo en unos minutos, escribe *Unity* para hablar con tu guía de farmacia 🩺, "
-            "o escribe *asesor* para hablar con nuestro equipo 👩‍⚕️."
-        )
-    else:
-        respuesta = responder_consulta_productos(termino)
-        enviar_mensaje_whatsapp(remitente, respuesta)
+    respuesta_unity = consultar_asistente_unity(remitente, texto_limpio)
+    enviar_mensaje_whatsapp(remitente, respuesta_unity)
 
 
 @app.get("/")
@@ -684,7 +693,7 @@ def inicio():
         "productos_cargados": len(INVENTARIO),
         "tasa_bs": TASA_BS,
         "tasa_cop_por_usd": TASA_COP_POR_USD,
-        "asistente_unity": "activo",
+        "asistente_unity": "modo_principal_activo",
         "modelo_ia": "gemini-3.5-flash-lite",
     }
 
@@ -785,8 +794,8 @@ async def recibir_webhook(request: Request):
                         if not texto_audio:
                             enviar_mensaje_whatsapp(
                                 remitente,
-                                "No logré escuchar bien el audio 🎙️. Por favor intenta de nuevo, "
-                                "escribe el nombre del producto o escribe *asesor* para ayudarte 👩‍⚕️."
+                                "¡Hola! 😊 Soy *Unity*, tu asistente virtual. No logré escuchar bien tu nota de voz 🎙️😅. "
+                                "Por favor envíamela de nuevo más cerquita del micrófono, escríbeme lo que necesitas o escribe *asesor* para ayudarte 👩‍⚕️💙."
                             )
                         else:
                             _manejar_texto_entrante(remitente, texto_audio)
@@ -794,9 +803,9 @@ async def recibir_webhook(request: Request):
                     else:
                         enviar_mensaje_whatsapp(
                             remitente,
+                            "¡Hola! 👋😊 Soy *Unity*, tu asistente virtual al servicio de *Farmacia Unitas Norte* 🏥. "
                             "Por el momento solo puedo leer mensajes de texto o notas de voz 💬🎙️. "
-                            "Escríbeme el nombre del producto que buscas, escribe *Unity* para hablar con tu guía de farmacia 🩺, "
-                            "o escribe *asesor* para hablar con nuestro equipo 👩‍⚕️."
+                            "Escríbeme el producto que buscas 💊, cuéntame tu consulta de bienestar 🩺 o escribe *asesor* para hablar con nuestro equipo 👩‍⚕️."
                         )
                 except Exception as e:
                     print(f"[ERROR] Procesando mensaje de {remitente}: {e}")
