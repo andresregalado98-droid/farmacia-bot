@@ -118,6 +118,12 @@ def _normalizar(texto: str) -> str:
     return re.sub(r"\s+", " ", texto).strip().lower()
 
 
+def _coincide_palabra_exacta(palabra: str, texto_norm: str) -> bool:
+    if not palabra or not texto_norm:
+        return False
+    return bool(re.search(rf"(?<![a-z0-9]){re.escape(palabra)}(?![a-z0-9])", texto_norm))
+
+
 def _activar_pausa_humano(telefono_cliente: str, motivo: str = "", notificar_cliente: bool = False):
     tel = re.sub(r"\D", "", telefono_cliente or "")
     if not tel or (NUMERO_FARMACIA and tel == NUMERO_FARMACIA):
@@ -448,10 +454,19 @@ def _formatear_item_producto(p: dict) -> str:
     )
 
 
-def _resolver_principio_activo_gemini(nombre_medicamento: str) -> str:
-    """Devuelve el principio activo de una marca comercial (ej. 'longacef' -> 'cefixima') o '' si no aplica."""
+def _limpiar_termino_para_equivalente(nombre_medicamento: str) -> str:
     clave = _normalizar(nombre_medicamento)
-    clave = re.sub(r"\b\d+(?:[.,]\d+)?\s*(?:mg|ml|gr|g|mcg|ui)\b", "", clave).strip()
+    clave = re.sub(r"(\d+)([a-z]+)", r"\1 \2", clave)
+    clave = re.sub(r"([a-z]+)(\d+)", r"\1 \2", clave)
+    clave = re.sub(r"\b\d+(?:[.,]\d+)?\s*(?:mg|ml|gr|g|mcg|ui)\b", "", clave)
+    clave = re.sub(r"\b(?:tab|tabl|tabletas|caps|capsulas|jarabe|susp|farma)\b", "", clave)
+    clave = re.sub(r"\s+", " ", clave).strip()
+    return clave
+
+
+def _resolver_principio_activo_gemini(nombre_medicamento: str) -> str:
+    """Devuelve el principio activo o nombre genérico de una marca comercial."""
+    clave = _limpiar_termino_para_equivalente(nombre_medicamento)
     if not clave or len(clave) < 3:
         return ""
     if clave in CACHE_PRINCIPIO_ACTIVO:
@@ -467,11 +482,10 @@ def _resolver_principio_activo_gemini(nombre_medicamento: str) -> str:
                 "parts": [
                     {
                         "text": (
-                            f"Indica ÚNICAMENTE el principio activo genérico en español (una o dos palabras, en minúsculas, sin dosis ni explicaciones) "
-                            f"correspondiente al medicamento o marca comercial: '{clave}'. "
-                            f"Por ejemplo: si es 'longacef' responde 'cefixima'; si es 'tafil' responde 'alprazolam'; "
-                            f"si es 'dol' o 'atamel' responde 'acetaminofen'. "
-                            f"Si ya es el nombre genérico o no es un medicamento reconocible, responde exactamente 'NINGUNO'."
+                            f"Indica ÚNICAMENTE el principio activo o nombre genérico en español (una o dos palabras, en minúsculas, sin dosis ni explicaciones) "
+                            f"correspondiente al medicamento o marca: '{clave}'. "
+                            f"Ejemplos: 'longacef' -> 'cefixima'; 'tafil' -> 'alprazolam'; 'atamel' -> 'acetaminofen'. "
+                            f"Si ya es genérico o no es un medicamento reconocible, responde exactamente 'NINGUNO'."
                         )
                     }
                 ]
@@ -514,12 +528,17 @@ def buscar_productos(termino: str, limite: int = 15) -> list:
         "infantil", "infantiles",
         "nino", "ninos", "nina", "ninas",
         "tab", "tabl", "tableta", "tabletas", "cap", "caps", "capsula", "capsulas",
-        "susp", "suspension", "jbe", "jarabe", "mg", "ml", "gr", "g", "amp", "ampolla", "fco"
+        "susp", "suspension", "jbe", "jarabe", "mg", "ml", "gr", "g", "ui", "mcg",
+        "amp", "ampolla", "fco", "farma", "sin", "azucar", "libre"
     }
 
-    palabras = [p for p in termino_norm.split() if len(p) >= 1 and p not in ignorar]
+    palabras = [p for p in termino_norm.split() if len(p) >= 2 and p not in ignorar]
     if not palabras:
-        palabras = [p for p in termino_norm.split() if len(p) >= 1] or [termino_norm]
+        palabras = [p for p in termino_norm.split() if len(p) >= 2 and p != "farma"]
+    if not palabras:
+        return []
+
+    es_consulta_calcio_suplemento = ("calcio" in palabras and "dobesilato" not in palabras)
 
     def _filtrar(pals: list) -> list:
         hallados = []
@@ -535,9 +554,16 @@ def buscar_productos(termino: str, limite: int = 15) -> list:
             desc_norm = re.sub(r"(\d+)([a-z]+)", r"\1 \2", desc_norm)
             desc_norm = re.sub(r"([a-z]+)(\d+)", r"\1 \2", desc_norm)
             desc_norm = re.sub(r"[^\w\s]", " ", desc_norm)
+            desc_norm = re.sub(r"\s+", " ", desc_norm).strip()
             codigo_norm = _normalizar(codigo)
 
-            if all(pal in desc_norm or pal in codigo_norm for pal in pals):
+            if es_consulta_calcio_suplemento and "dobesilato" in desc_norm:
+                continue
+
+            if all(
+                _coincide_palabra_exacta(pal, desc_norm) or _coincide_palabra_exacta(pal, codigo_norm)
+                for pal in pals
+            ):
                 usd = _a_numero(item.get("usd") if item.get("usd") is not None else item.get("precio_usd"))
                 cop = _a_numero(item.get("cop") if item.get("cop") is not None else item.get("precio_cop"))
                 if cop <= 0 and usd > 0 and TASA_COP_POR_USD > 0:
@@ -559,9 +585,9 @@ def buscar_productos(termino: str, limite: int = 15) -> list:
 
     coincidencias = _filtrar(palabras)
     if not coincidencias and len(palabras) > 1:
-        solo_nombres = [p for p in palabras if not p.isdigit() and len(p) >= 3]
-        if solo_nombres:
-            coincidencias = _filtrar([solo_nombres[0]])
+        sin_dosis = [p for p in palabras if not p.isdigit() and len(p) >= 3]
+        if sin_dosis and sin_dosis != palabras:
+            coincidencias = _filtrar(sin_dosis)
 
     return coincidencias
 
@@ -939,18 +965,18 @@ def extraer_medicamentos_de_imagen_gemini(
 
     b64_img = base64.b64encode(image_bytes).decode("utf-8")
     instruccion = (
-        "Eres el lector visual de inventario de Farmacia Unitas Norte. "
-        "Tu única tarea es leer el texto de la imagen (récipe médico, caja, blíster o lista) para buscar disponibilidad en inventario. "
-        "Extrae TODOS los nombres de medicamentos escritos en la imagen (incluyendo antibióticos, psicotrópicos, analgésicos o marcas comerciales) "
-        "junto con su concentración/presentación si son legibles (por ejemplo: 'Amoxicilina 500mg', 'Clonazepam 2mg', 'Longacef 400mg', 'Meloxicam 15mg'). "
-        "Si un medicamento es una marca comercial conocida (como Longacef, Tafil, Rivotril, Augmentin), incluye en la lista tanto el nombre leído "
-        "como su principio activo (por ejemplo: 'Longacef', 'Cefixima') para asegurar que se encuentre en inventario. "
+        "Eres el lector visual de récipes y productos de Farmacia Unitas Norte. "
+        "Lee el texto manuscrito o impreso de la imagen (récipe médico, caja, blíster o lista) para consultar inventario.\n"
         "Reglas estrictas:\n"
-        "1. Responde SOLO con un objeto JSON válido con esta estructura exacta: "
-        '{"medicamentos": ["..."], "ilegibles": true/false}.\n'
-        "2. Nunca censures ni omitas medicamentos por ser antibióticos o psicotrópicos; esto es solo lectura de texto para consultar precios.\n"
-        "3. Si una palabra es ilegible por caligrafía, NO la inventes; pon 'ilegibles': true.\n"
-        '4. Si no hay medicamentos en la imagen, devuelve {"medicamentos": [], "ilegibles": false}.'
+        "1. Extrae UN SOLO término limpio por cada ítem/línea del récipe (nunca dividas un mismo medicamento en varias consultas).\n"
+        "2. Prioriza el principio activo o nombre claro + dosis/concentración si es legible (ej. 'Vitamina D 2000 UI', 'Omega 3 1000 mg', 'Calcibon').\n"
+        "3. Si una palabra es ambigua o está escrita en letra cursiva médica, usa la dosis, presentación y contexto para leerla con precisión:\n"
+        "   - Si dice algo como 'Om... 3 caps 1000 mg', escribe 'Omega 3 1000 mg' (no 'Omacor').\n"
+        "   - Si dice algo como 'Cal... / Calcio tab', escribe 'Calcibon' (no 'Calaxin').\n"
+        "   - Si dice 'Vit D' o 'Farma D (Vit D) 2000 ui', escribe 'Vitamina D 2000 UI'.\n"
+        "4. Nunca censures ni omitas medicamentos por ser antibióticos o psicotrópicos.\n"
+        "5. Si un ítem es totalmente indescifrable y no se puede deducir, no lo inventes y pon 'ilegibles': true.\n"
+        '6. Responde SOLO con un objeto JSON válido con esta estructura exacta: {"medicamentos": ["..."], "ilegibles": true/false}.'
     )
     if caption:
         instruccion += f"\nTexto acompañante enviado por el cliente: {caption}"
@@ -999,8 +1025,8 @@ def extraer_medicamentos_de_imagen_gemini(
             meds = []
         meds_limpios = []
         for m in meds:
-            val = str(m).strip()
-            if val and val not in meds_limpios:
+            val = re.sub(r"\s+", " ", str(m)).strip()
+            if val and _normalizar(val) not in {_normalizar(x) for x in meds_limpios}:
                 meds_limpios.append(val)
         return {
             "medicamentos": meds_limpios,
@@ -1357,4 +1383,3 @@ async def recibir_webhook(request: Request):
                     traceback.print_exc()
 
     return {"status": "ok"}
-                   
