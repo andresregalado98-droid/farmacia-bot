@@ -18,12 +18,12 @@ MENSAJE_BIENVENIDA_UNITY = (
     "¡Hola! 👋😊 Qué alegría saludarte. Soy *✨🤖 UNITY — TU GUÍA DE FARMACIA Y ASISTENTE VIRTUAL 🩺✨* al servicio de todos los clientes de *Farmacia Unitas Norte* (RIF: *J-298120886*) 🏥💙.\n\n"
     "Estoy aquí desde este primer mensaje para ayudarte y hacerte todo más fácil ✨. ¡Aprovecha al máximo todo lo que puedo hacer por ti!\n\n"
     "🔍 *1. Precios y disponibilidad al instante:* Escríbeme el nombre de uno o varios productos y te consulto su precio y disponibilidad al momento 💊✨.\n"
-    "🩺 *2. Orientación en malestares leves:* Cuéntame si tienes algún malestar común (dolor de cabeza, acidez, congestión, etc.) y te oriento con opciones habituales y cuidados generales 🌿💧.\n"
+    "🩺 *2. Orientación en malestares leves y función de medicamentos:* Cuéntame si tienes algún malestar común o pregúntame para qué sirve cualquier medicamento y te explico su función con claridad 🌿💧.\n"
     "🎙️ *3. ¡También entiendo notas de voz!:* Si vas ocupado o prefieres hablar, envíame un audio y te respondo igual de rápido 🗣️✨.\n"
     "📸 *4. Lectura de récipes y fotos:* Envíame una foto de tu récipe médico, caja o lista y reviso los medicamentos en inventario al momento 📋💊.\n"
     "📍 *5. Ubicación, horario y cómo llegar:* Pregúntame dónde estamos y te envío nuestra dirección exacta, enlace de Google Maps 🗺️ y horario (*Lunes a Sábado: 7:00 AM a 10:30 PM | Domingo: Cerrado* ⏰).\n"
     "👩‍⚕️ *6. Atención personalizada:* Si necesitas hablar con nuestro equipo de mostrador, solo escribe *asesor* en cualquier momento 🤝.\n\n"
-    "⚠️ *Compromiso sanitario (MPPS / Ley Orgánica de Drogas):* Puedo informarte precios y disponibilidad de inventario, pero por normativa vigente los *antibióticos*, *psicotrópicos* y *estupefacientes* nunca se recomiendan ni se indican por este medio; requieren prescripción e indicación de un *médico*.\n\n"
+    "⚠️ *Compromiso sanitario (MPPS / Ley Orgánica de Drogas):* Puedo informarte precios, disponibilidad y para qué sirve cada medicamento, pero nunca recomiendo, indico ni doy dosis o pautas de uso de *antibióticos*, *psicotrópicos* ni *estupefacientes*; su indicación y dosis corresponden a un *médico*.\n\n"
     "¿Qué producto buscas o en qué te puedo ayudar hoy? 💬😊"
 )
 
@@ -36,7 +36,7 @@ MENSAJE_DESPEDIDA = (
     "📍 *Nos encuentras en:* Calle 5 entre carreras 11 y 12 de La Concordia, media cuadra bajando del Hospital Central.\n"
     "⏰ *Horario de atención:* Lunes a Sábado de *7:00 AM a 10:30 PM* | Domingo: *Cerrado*.\n\n"
     "Recuerda que sigo aquí como *✨🤖 UNITY — TU GUÍA DE FARMACIA Y ASISTENTE VIRTUAL 🩺✨* al servicio del cliente 🙌😊. "
-    "Puedes escribirme o enviarme un audio 🎙️ con otro producto 💊, hacerme una consulta sobre algún malestar leve 🩺, "
+    "Puedes escribirme o enviarme un audio 🎙️ con otro producto 💊, preguntarme para qué sirve un medicamento o sobre algún malestar leve 🩺, "
     "o escribir *asesor* para recibir atención personalizada de nuestro equipo 👩‍⚕️. ¡Que tengas un excelente día! ☀️💛"
 )
 
@@ -55,8 +55,8 @@ MENSAJE_PAUSA_POR_TRABAJADOR = (
 MENSAJE_BLOQUEO_CONTROLADOS = (
     "⚠️ *Aviso importante de salud (MPPS / Ley Orgánica de Drogas):*\n"
     "Como *✨🤖 UNITY — TU GUÍA DE FARMACIA Y ASISTENTE VIRTUAL 🩺✨* al servicio del cliente, cuido tu bienestar y cumplo con la regulación farmacéutica vigente 💙. "
-    "Puedo informarte precios y disponibilidad de inventario, pero no puedo recomendar, indicar ni dar pautas o dosis de uso sobre *antibióticos, psicotrópicos ni estupefacientes* 🚫💊.\n\n"
-    "Estos fármacos requieren valoración e indicación directa de un *médico* y cumplir con los requisitos de dispensación establecidos 🩺.\n"
+    "Puedo explicarte la función general del medicamento, su precio y su disponibilidad de inventario, pero no puedo recomendar, indicar ni dar pautas o dosis de uso sobre *antibióticos, psicotrópicos ni estupefacientes* 🚫💊.\n\n"
+    "Estos fármacos requieren valoración, indicación y dosis directa de un *médico* 🩺.\n"
     "Si deseas consultar disponibilidad exacta en mostrador o atención personalizada de nuestro equipo, escribe *asesor* 👩‍⚕️🤝."
 )
 
@@ -116,12 +116,6 @@ def _normalizar(texto: str) -> str:
     texto = unicodedata.normalize("NFKD", texto or "")
     texto = "".join(c for c in texto if not unicodedata.combining(c))
     return re.sub(r"\s+", " ", texto).strip().lower()
-
-
-def _coincide_palabra_exacta(palabra: str, texto_norm: str) -> bool:
-    if not palabra or not texto_norm:
-        return False
-    return bool(re.search(rf"(?<![a-z0-9]){re.escape(palabra)}(?![a-z0-9])", texto_norm))
 
 
 def _activar_pausa_humano(telefono_cliente: str, motivo: str = "", notificar_cliente: bool = False):
@@ -225,13 +219,42 @@ def _contiene_medicamento_restringido(texto: str) -> bool:
     return False
 
 
-def _pide_recomendacion_o_dosis_restringido(texto: str) -> bool:
-    """Solo devuelve True si menciona un restringido Y pide explícitamente recomendar, recetar o dar dosis."""
-    if not _contiene_medicamento_restringido(texto):
-        return False
+def _es_pregunta_funcion_medicamento(texto: str) -> bool:
+    """Detecta si el cliente pregunta para qué sirve, utilidad, efectos o función de un medicamento (incluso sin signos ¿?)."""
     norm = _normalizar(texto)
     norm_plano = re.sub(r"[^\w\s]", " ", norm)
     norm_plano = re.sub(r"\s+", " ", norm_plano).strip()
+
+    patrones_funcion = (
+        "para que sirve", "pa que sirve", "pa q sirve", "para q sirve",
+        "que sirve", "q sirve", "sirve para", "sirve pa", "sirve el", "sirve la",
+        "de que sirve", "en que sirve", "en que ayuda", "en q ayuda",
+        "para que ayuda", "pa que ayuda", "para que es", "pa que es", "pa q es",
+        "que funcion", "q funcion", "cual es la funcion", "cual es su funcion",
+        "funcion tiene", "funcion cumple", "funcion del", "funcion de",
+        "utilidad tiene", "utilidad del", "utilidad de", "cual es la utilidad",
+        "para que se usa", "pa que se usa", "para q se usa",
+        "para que se utiliza", "para que lo mandan", "pa que lo mandan",
+        "por que lo mandan", "porque lo mandan", "por que recetan", "porque recetan",
+        "como funciona", "como actua", "mecanismo de accion",
+        "que hace el", "que hace la", "que hace este", "que hace ese",
+        "q hace el", "q hace la", "que efecto", "q efecto", "efectos tiene",
+        "beneficios tiene", "beneficios del", "beneficios de",
+        "indicaciones del", "indicaciones de", "que trata", "q trata",
+        "que cura", "q cura", "que alivia", "q alivia",
+        "que es el", "que es la", "q es el", "q es la",
+        "informacion sobre", "informacion del", "informacion de", "info del", "info de",
+        "explicame que es", "explicame para que", "dime para que", "dime que es", "dime cual es la funcion"
+    )
+    return any(p in norm_plano for p in patrones_funcion)
+
+
+def _pide_recetar_o_dosis_restringido(texto: str) -> bool:
+    """Solo devuelve True si pide explícitamente recetar, recomendar tomar o dar dosis/pauta."""
+    norm = _normalizar(texto)
+    norm_plano = re.sub(r"[^\w\s]", " ", norm)
+    norm_plano = re.sub(r"\s+", " ", norm_plano).strip()
+
     patrones_receta_o_dosis = (
         "recomienda", "recomiendas", "recomiendame", "sugiere", "recetame", "receta",
         "que puedo tomar", "que me tomo", "como se toma", "como tomar",
@@ -241,8 +264,8 @@ def _pide_recomendacion_o_dosis_restringido(texto: str) -> bool:
 
 
 def _es_solo_consulta_precio_o_disponibilidad(texto: str) -> bool:
-    """Detecta si el cliente consulta precio/existencia sin pedir recomendación ni dosis."""
-    if _pide_recomendacion_o_dosis_restringido(texto):
+    """Detecta si el cliente consulta precio/existencia sin pedir función, recomendación ni dosis."""
+    if _es_pregunta_funcion_medicamento(texto) or _pide_recetar_o_dosis_restringido(texto):
         return False
 
     norm = _normalizar(texto)
@@ -272,19 +295,33 @@ def _es_solo_consulta_precio_o_disponibilidad(texto: str) -> bool:
 
 
 def _es_consulta_conversacional(texto_norm: str) -> bool:
-    """Detecta si el usuario está haciendo una pregunta abierta, pidiendo orientación de síntomas, funciones, horario o ubicación."""
+    """Detecta si el usuario está haciendo una pregunta abierta, pidiendo función de un medicamento, orientación, horario o ubicación (con o sin ¿?)."""
+    if _es_pregunta_funcion_medicamento(texto_norm):
+        return True
+
+    texto_plano = re.sub(r"[^\w\s]", " ", texto_norm)
+    texto_plano = re.sub(r"\s+", " ", texto_plano).strip()
+
+    # Detectar palabras interrogativas al inicio o dentro de la frase aunque no tengan signo '?'
+    if re.match(r"^(?:que|q|cual|cuales|como|donde|cuando|por que|porque|para que|pa que|para q|pa q|quien|dime|explicame|cuentame)\b", texto_plano):
+        return True
+
     indicadores_conversacion = (
-        "?", "¿", "dolor", "fiebre", "gripe", "tos", "acidez", "alergia",
+        "?", "¿", "sirve", "servir", "funcion", "función", "utilidad",
+        "usa", "usar", "utiliza", "utilizar", "funciona", "actua",
+        "beneficio", "beneficios", "efecto", "efectos", "indicacion", "indicaciones",
+        "cura", "alivia", "trata", "explicame", "explica", "informacion",
+        "dolor", "fiebre", "gripe", "tos", "acidez", "alergia",
         "malestar", "sintoma", "síntoma", "mareo", "nausea", "náusea",
         "diarrea", "estomago", "estómago", "cabeza", "garganta", "congestion",
-        "congestión", "recomienda", "recomiendas", "sirve para", "que puedo tomar",
+        "congestión", "recomienda", "recomiendas", "que puedo tomar",
         "qué puedo tomar", "que me tomo", "qué me tomo", "como se toma",
-        "cómo se toma", "para que sirve", "para qué sirve", "ubicacion",
-        "ubicación", "direccion", "dirección", "donde quedan", "dónde quedan",
-        "como llegar", "cómo llegar", "horario", "abiertos", "abierto", "cierran",
-        "cerrado", "domingo", "trabajan", "pesos", "colombianos", "cop",
-        "bolivares", "bolívares", "tasa", "que haces", "qué haces",
-        "funciones", "ayudar", "quien eres", "quién eres"
+        "cómo se toma", "ubicacion", "ubicación", "direccion", "dirección",
+        "donde quedan", "dónde quedan", "como llegar", "cómo llegar",
+        "horario", "abiertos", "abierto", "cierran", "cerrado", "domingo",
+        "trabajan", "pesos", "colombianos", "cop", "bolivares", "bolívares",
+        "tasa", "que haces", "qué haces", "funciones", "ayudar",
+        "quien eres", "quién eres"
     )
     return any(ind in texto_norm for ind in indicadores_conversacion)
 
@@ -328,14 +365,18 @@ def procesar_mensaje_usuario(texto: str):
         "busco", "buscar", "buscando", "andaba", "estoy", "ando",
         "necesito", "necesita", "quiero", "quisiera", "deseo",
         "saber", "si", "me", "puedes", "podrias", "podrías", "puede", "podria", "podría",
-        "decir", "decirme", "consultar", "averiguar",
+        "decir", "decirme", "consultar", "averiguar", "dime", "explicame", "cuentame",
         "precio", "precios", "cuanto", "cuánto", "cuesta", "cuestan", "vale", "valen",
         "en", "existencia", "existencias", "stock",
         "de", "del", "la", "el", "los", "las",
         "un", "una", "unos", "unas",
         "por", "favor", "porfa", "plis",
-        "te", "se", "para", "con", "algun", "algún", "alguna", "algunos", "algunas",
-        "y", "e", "pesos", "colombianos", "cop", "bolivares", "bolívares", "dolares", "dólares", "usd"
+        "te", "se", "para", "pa", "con", "algun", "algún", "alguna", "algunos", "algunas",
+        "y", "e", "pesos", "colombianos", "cop", "bolivares", "bolívares", "dolares", "dólares", "usd",
+        "que", "q", "sirve", "servir", "funcion", "función", "utilidad",
+        "usa", "usar", "utiliza", "utilizar", "cual", "cuál", "es", "su",
+        "hace", "funciona", "actua", "beneficios", "efecto", "efectos", "indicaciones",
+        "cura", "alivia", "trata", "informacion", "info", "sobre"
     }
 
     terminos = []
@@ -454,19 +495,10 @@ def _formatear_item_producto(p: dict) -> str:
     )
 
 
-def _limpiar_termino_para_equivalente(nombre_medicamento: str) -> str:
-    clave = _normalizar(nombre_medicamento)
-    clave = re.sub(r"(\d+)([a-z]+)", r"\1 \2", clave)
-    clave = re.sub(r"([a-z]+)(\d+)", r"\1 \2", clave)
-    clave = re.sub(r"\b\d+(?:[.,]\d+)?\s*(?:mg|ml|gr|g|mcg|ui)\b", "", clave)
-    clave = re.sub(r"\b(?:tab|tabl|tabletas|caps|capsulas|jarabe|susp|farma)\b", "", clave)
-    clave = re.sub(r"\s+", " ", clave).strip()
-    return clave
-
-
 def _resolver_principio_activo_gemini(nombre_medicamento: str) -> str:
-    """Devuelve el principio activo o nombre genérico de una marca comercial."""
-    clave = _limpiar_termino_para_equivalente(nombre_medicamento)
+    """Devuelve el principio activo de una marca comercial (ej. 'longacef' -> 'cefixima') o '' si no aplica."""
+    clave = _normalizar(nombre_medicamento)
+    clave = re.sub(r"\b\d+(?:[.,]\d+)?\s*(?:mg|ml|gr|g|mcg|ui)\b", "", clave).strip()
     if not clave or len(clave) < 3:
         return ""
     if clave in CACHE_PRINCIPIO_ACTIVO:
@@ -482,10 +514,11 @@ def _resolver_principio_activo_gemini(nombre_medicamento: str) -> str:
                 "parts": [
                     {
                         "text": (
-                            f"Indica ÚNICAMENTE el principio activo o nombre genérico en español (una o dos palabras, en minúsculas, sin dosis ni explicaciones) "
-                            f"correspondiente al medicamento o marca: '{clave}'. "
-                            f"Ejemplos: 'longacef' -> 'cefixima'; 'tafil' -> 'alprazolam'; 'atamel' -> 'acetaminofen'. "
-                            f"Si ya es genérico o no es un medicamento reconocible, responde exactamente 'NINGUNO'."
+                            f"Indica ÚNICAMENTE el principio activo genérico en español (una o dos palabras, en minúsculas, sin dosis ni explicaciones) "
+                            f"correspondiente al medicamento o marca comercial: '{clave}'. "
+                            f"Por ejemplo: si es 'longacef' responde 'cefixima'; si es 'tafil' responde 'alprazolam'; "
+                            f"si es 'dol' o 'atamel' responde 'acetaminofen'. "
+                            f"Si ya es el nombre genérico o no es un medicamento reconocible, responde exactamente 'NINGUNO'."
                         )
                     }
                 ]
@@ -528,17 +561,12 @@ def buscar_productos(termino: str, limite: int = 15) -> list:
         "infantil", "infantiles",
         "nino", "ninos", "nina", "ninas",
         "tab", "tabl", "tableta", "tabletas", "cap", "caps", "capsula", "capsulas",
-        "susp", "suspension", "jbe", "jarabe", "mg", "ml", "gr", "g", "ui", "mcg",
-        "amp", "ampolla", "fco", "farma", "sin", "azucar", "libre"
+        "susp", "suspension", "jbe", "jarabe", "mg", "ml", "gr", "g", "amp", "ampolla", "fco"
     }
 
-    palabras = [p for p in termino_norm.split() if len(p) >= 2 and p not in ignorar]
+    palabras = [p for p in termino_norm.split() if len(p) >= 1 and p not in ignorar]
     if not palabras:
-        palabras = [p for p in termino_norm.split() if len(p) >= 2 and p != "farma"]
-    if not palabras:
-        return []
-
-    es_consulta_calcio_suplemento = ("calcio" in palabras and "dobesilato" not in palabras)
+        palabras = [p for p in termino_norm.split() if len(p) >= 1] or [termino_norm]
 
     def _filtrar(pals: list) -> list:
         hallados = []
@@ -554,16 +582,9 @@ def buscar_productos(termino: str, limite: int = 15) -> list:
             desc_norm = re.sub(r"(\d+)([a-z]+)", r"\1 \2", desc_norm)
             desc_norm = re.sub(r"([a-z]+)(\d+)", r"\1 \2", desc_norm)
             desc_norm = re.sub(r"[^\w\s]", " ", desc_norm)
-            desc_norm = re.sub(r"\s+", " ", desc_norm).strip()
             codigo_norm = _normalizar(codigo)
 
-            if es_consulta_calcio_suplemento and "dobesilato" in desc_norm:
-                continue
-
-            if all(
-                _coincide_palabra_exacta(pal, desc_norm) or _coincide_palabra_exacta(pal, codigo_norm)
-                for pal in pals
-            ):
+            if all(pal in desc_norm or pal in codigo_norm for pal in pals):
                 usd = _a_numero(item.get("usd") if item.get("usd") is not None else item.get("precio_usd"))
                 cop = _a_numero(item.get("cop") if item.get("cop") is not None else item.get("precio_cop"))
                 if cop <= 0 and usd > 0 and TASA_COP_POR_USD > 0:
@@ -585,9 +606,9 @@ def buscar_productos(termino: str, limite: int = 15) -> list:
 
     coincidencias = _filtrar(palabras)
     if not coincidencias and len(palabras) > 1:
-        sin_dosis = [p for p in palabras if not p.isdigit() and len(p) >= 3]
-        if sin_dosis and sin_dosis != palabras:
-            coincidencias = _filtrar(sin_dosis)
+        solo_nombres = [p for p in palabras if not p.isdigit() and len(p) >= 3]
+        if solo_nombres:
+            coincidencias = _filtrar([solo_nombres[0]])
 
     return coincidencias
 
@@ -723,8 +744,12 @@ def _extraer_palabras_clave_inventario(consulta: str) -> list:
     stop = {
         "hola", "unity", "tienen", "tiene", "hay", "busco", "necesito", "quiero",
         "precio", "precios", "cuanto", "cuesta", "vale", "pesos", "colombianos",
-        "cop", "bolivares", "dolares", "para", "como", "donde", "que", "con",
-        "sin", "por", "favor", "una", "uno", "unos", "unas", "los", "las", "del"
+        "cop", "bolivares", "dolares", "para", "pa", "como", "donde", "que", "con",
+        "sin", "por", "favor", "una", "uno", "unos", "unas", "los", "las", "del",
+        "sirve", "servir", "funcion", "función", "utilidad", "usa", "usar",
+        "utiliza", "utilizar", "cual", "cuál", "hace", "funciona", "actua",
+        "beneficios", "efecto", "efectos", "indicaciones", "cura", "alivia",
+        "trata", "informacion", "info", "sobre", "dime", "explicame", "cuentame"
     }
     return [p for p in norm_plano.split() if len(p) >= 3 and p not in stop][:5]
 
@@ -746,7 +771,7 @@ def _buscar_contexto_inventario_para_unity(consulta: str) -> str:
             cat = _clasificar_presentacion(p["descripcion"])
             etiq_cat = "TABLETAS/CÁPSULAS" if cat == "tabletas" else ("SUSPENSIÓN/JARABE" if cat == "suspension" else "OTRA PRESENTACIÓN")
             nota_eq = f" [EQUIVALENTE A '{term}' POR PRINCIPIO ACTIVO '{eq}']" if eq else ""
-            etiqueta_rest = " [ANTIBIÓTICO/PSICOTRÓPICO/ESTUPEFACIENTE - INFORMAR PRECIO Y DISPONIBILIDAD, NUNCA RECOMENDAR NI DAR DOSIS]" if _contiene_medicamento_restringido(p["descripcion"]) else ""
+            etiqueta_rest = " [ANTIBIÓTICO/PSICOTRÓPICO/ESTUPEFACIENTE - EXPLICAR FUNCIÓN GENERAL Y DISPONIBILIDAD, NUNCA RECETAR NI DAR DOSIS]" if _contiene_medicamento_restringido(p["descripcion"]) else ""
             linea = f"- [{etiq_cat}] {p['descripcion']} (USD ${p['usd']:.2f} | Bs. {p['bs']:,.2f}{parte_cop}){nota_eq}{etiqueta_rest}"
             if linea not in resultados:
                 resultados.append(linea)
@@ -792,7 +817,7 @@ def _llamar_gemini_con_reintentos(payload: dict, timeout: int = 25, max_reintent
 
 
 def consultar_asistente_unity(remitente: str, mensaje_usuario: str) -> str:
-    if _pide_recomendacion_o_dosis_restringido(mensaje_usuario):
+    if _pide_recetar_o_dosis_restringido(mensaje_usuario) and not _es_pregunta_funcion_medicamento(mensaje_usuario):
         return MENSAJE_BLOQUEO_CONTROLADOS
 
     api_key = (os.getenv("GEMINI_API_KEY") or "").strip()
@@ -815,7 +840,7 @@ def consultar_asistente_unity(remitente: str, mensaje_usuario: str) -> str:
         "NUNCA uses expresiones como 'medicamentos sencillos' ni 'productos sencillos', ni te presentes como médico.\n\n"
         "FUNCIONES DE UNITY (PARA EXPLICARLAS SI EL CLIENTE PREGUNTA QUÉ HACES O CÓMO APROVECHARTE):\n"
         "- Consulta rápida de precios y disponibilidad de inventario al momento, separando presentaciones como tabletas y suspensión 💊🧴✨.\n"
-        "- Orientación cercana sobre malestares comunes leves y opciones habituales de venta libre (OTC) 🩺🌿.\n"
+        "- Explicación clara de para qué sirve o cuál es la función de cualquier medicamento (incluidos controlados, psicotrópicos y antibióticos) y orientación en malestares leves 🩺🌿.\n"
         "- Comprensión de notas de voz/audios enviados por WhatsApp 🎙️.\n"
         "- Lectura de fotos de récipes médicos, cajas y listas de medicamentos 📋💊.\n"
         "- Envío de la ubicación exacta, enlace de Google Maps 📍 y horario de atención ⏰.\n"
@@ -826,15 +851,16 @@ def consultar_asistente_unity(remitente: str, mensaje_usuario: str) -> str:
         "  • *Lunes a Sábado:* 7:00 AM a 10:30 PM ⏰\n"
         "  • *Domingo:* Cerrado 🛌\n\n"
         "REGLAS NORMATIVAS Y DE SEGURIDAD:\n"
-        "1. SEPARACIÓN DE PRESENTACIONES EN INVENTARIO: Cuando menciones productos del contexto de inventario que tengan tabletas/cápsulas y suspensión/jarabe, sepáralos claramente en dos bloques (*💊 Tabletas / Cápsulas* y *🧴 Suspensión / Jarabe*).\n"
-        "2. OPCIONES CON EL MISMO PRINCIPIO ACTIVO: Si el cliente pregunta por una marca comercial que no tenemos (por ejemplo Longacef) y en el contexto aparecen opciones con su mismo principio activo (por ejemplo Cefixima), indícale con amabilidad que no tenemos esa marca pero sí contamos con opciones con el mismo principio activo y dale sus precios y disponibilidad.\n"
-        "3. PRECIOS Y DISPONIBILIDAD DE ANTIBIÓTICOS, PSICOTRÓPICOS Y ESTUPEFACIENTES: SIEMPRE que un récipe o consulta incluya un antibiótico, psicotrópico o estupefaciente, informa su precio y disponibilidad según el inventario, SIN recetar, SIN recomendarlo y SIN dar dosis ni pautas de uso. Indica brevemente que su dispensación requiere prescripción médica vigente. Si no aparece cargado en este momento, indícalo con amabilidad y sugiere escribir *asesor* para confirmar en mostrador.\n"
-        "4. PROHIBICIÓN DE RECETAR O RECOMENDAR ANTIBIÓTICOS, PSICOTRÓPICOS Y ESTUPEFACIENTES: NUNCA recomiendes, sugieras, recetes ni des dosis o pautas de uso de antibióticos, psicotrópicos o estupefacientes. NUNCA exijas ni menciones récipe médico para antiinflamatorios, analgésicos (como meloxicam, ibuprofeno, diclofenac, acetaminofén), antialérgicos ni otros medicamentos de uso cotidiano.\n"
-        "5. Ante malestares leves comunes o consultas sobre analgésicos/antiinflamatorios cotidianos (como meloxicam, dolor de cabeza leve, malestar estomacal ocasional, acidez, congestión leve o cansancio), desarrolla una respuesta amena y empática explicando su uso general, opciones habituales y medidas de alivio (sin diagnosticar ni dar dosis fijas como consulta médica).\n"
-        "6. Al mencionar medicamentos de uso cotidiano o de venta libre, recuerda revisar el prospecto y consultar al médico o farmacéutico en caso de embarazo, lactancia, niños, adultos mayores o condiciones crónicas.\n"
-        "7. Si hay señales de alarma o gravedad, recomienda buscar atención médica de inmediato.\n"
-        "8. NUNCA calcules, estimes ni inventes precios en pesos colombianos (COP). Usa únicamente el monto en COP que aparezca explícitamente en el contexto de inventario; si no aparece un monto en COP disponible, indica el precio en USD y Bs. y sugiere escribir *asesor* para confirmar el monto en COP.\n"
-        "9. Cierra siempre de forma cercana recordando que sigues a su servicio como *✨🤖 UNITY — TU GUÍA DE FARMACIA 🩺✨* y que puede enviarte otro producto, una nota de voz 🎙️ o escribir *asesor* para atención personalizada 👩‍⚕️."
+        "1. FUNCIÓN DE CUALQUIER MEDICAMENTO (INCLUIDOS CONTROLADOS, PSICOTRÓPICOS Y ANTIBIÓTICOS): SIEMPRE que pregunten para qué sirve, cuál es la función, utilidad, beneficios o qué hace un medicamento (con o sin signos de interrogación, por ejemplo 'para que sirve acetaminofen', 'que sirve clonazepam', 'funcion del tramadol', 'pa que sirve amoxicilina'), RESPONDE explicando claramente su función terapéutica o farmacológica general (a qué familia pertenece y para qué situaciones se utiliza habitualmente), SIN recetar, SIN recomendar tomarlo y SIN dar dosis ni pautas de uso. Además, si en el contexto interno aparece disponibilidad de ese medicamento en inventario, puedes mencionarla brevemente al final. Si es un antibiótico, psicotrópico o estupefaciente, indica brevemente que su uso y dosificación corresponden exclusivamente a un médico.\n"
+        "2. SEPARACIÓN DE PRESENTACIONES EN INVENTARIO: Cuando menciones productos del contexto de inventario que tengan tabletas/cápsulas y suspensión/jarabe, sepáralos claramente en dos bloques (*💊 Tabletas / Cápsulas* y *🧴 Suspensión / Jarabe*).\n"
+        "3. OPCIONES CON EL MISMO PRINCIPIO ACTIVO: Si el cliente pregunta por una marca comercial que no tenemos (por ejemplo Longacef) y en el contexto aparecen opciones con su mismo principio activo (por ejemplo Cefixima), indícale con amabilidad que no tenemos esa marca pero sí contamos con opciones con el mismo principio activo y dale sus precios y disponibilidad.\n"
+        "4. PRECIOS Y DISPONIBILIDAD DE ANTIBIÓTICOS, PSICOTRÓPICOS Y ESTUPEFACIENTES: SIEMPRE que un récipe o consulta incluya un antibiótico, psicotrópico o estupefaciente, informa su precio y disponibilidad según el inventario, SIN recetar, SIN recomendarlo y SIN dar dosis ni pautas de uso.\n"
+        "5. PROHIBICIÓN DE RECETAR O RECOMENDAR ANTIBIÓTICOS, PSICOTRÓPICOS Y ESTUPEFACIENTES: NUNCA recomiendes, sugieras, recetes ni des dosis o pautas de uso de antibióticos, psicotrópicos o estupefacientes. NUNCA exijas ni menciones récipe médico para antiinflamatorios, analgésicos (como meloxicam, ibuprofeno, diclofenac, acetaminofén), antialérgicos ni otros medicamentos de uso cotidiano.\n"
+        "6. Ante malestares leves comunes o consultas sobre analgésicos/antiinflamatorios cotidianos (como meloxicam, dolor de cabeza leve, malestar estomacal ocasional, acidez, congestión leve o cansancio), desarrolla una respuesta amena y empática explicando su uso general, opciones habituales y medidas de alivio (sin diagnosticar ni dar dosis fijas como consulta médica).\n"
+        "7. Al mencionar medicamentos de uso cotidiano o de venta libre, recuerda revisar el prospecto y consultar al médico o farmacéutico en caso de embarazo, lactancia, niños, adultos mayores o condiciones crónicas.\n"
+        "8. Si hay señales de alarma o gravedad, recomienda buscar atención médica de inmediato.\n"
+        "9. NUNCA calcules, estimes ni inventes precios en pesos colombianos (COP). Usa únicamente el monto en COP que aparezca explícitamente en el contexto de inventario; si no aparece un monto en COP disponible, indica el precio en USD y Bs. y sugiere escribir *asesor* para confirmar el monto en COP.\n"
+        "10. Cierra siempre de forma cercana recordando que sigues a su servicio como *✨🤖 UNITY — TU GUÍA DE FARMACIA 🩺✨* y que puede enviarte otro producto, una nota de voz 🎙️ o escribir *asesor* para atención personalizada 👩‍⚕️."
     )
 
     prompt_usuario = mensaje_usuario.strip()
@@ -965,18 +991,18 @@ def extraer_medicamentos_de_imagen_gemini(
 
     b64_img = base64.b64encode(image_bytes).decode("utf-8")
     instruccion = (
-        "Eres el lector visual de récipes y productos de Farmacia Unitas Norte. "
-        "Lee el texto manuscrito o impreso de la imagen (récipe médico, caja, blíster o lista) para consultar inventario.\n"
+        "Eres el lector visual de inventario de Farmacia Unitas Norte. "
+        "Tu única tarea es leer el texto de la imagen (récipe médico, caja, blíster o lista) para buscar disponibilidad en inventario. "
+        "Extrae TODOS los nombres de medicamentos escritos en la imagen (incluyendo antibióticos, psicotrópicos, analgésicos o marcas comerciales) "
+        "junto con su concentración/presentación si son legibles (por ejemplo: 'Amoxicilina 500mg', 'Clonazepam 2mg', 'Longacef 400mg', 'Meloxicam 15mg'). "
+        "Si un medicamento es una marca comercial conocida (como Longacef, Tafil, Rivotril, Augmentin), incluye en la lista tanto el nombre leído "
+        "como su principio activo (por ejemplo: 'Longacef', 'Cefixima') para asegurar que se encuentre en inventario. "
         "Reglas estrictas:\n"
-        "1. Extrae UN SOLO término limpio por cada ítem/línea del récipe (nunca dividas un mismo medicamento en varias consultas).\n"
-        "2. Prioriza el principio activo o nombre claro + dosis/concentración si es legible (ej. 'Vitamina D 2000 UI', 'Omega 3 1000 mg', 'Calcibon').\n"
-        "3. Si una palabra es ambigua o está escrita en letra cursiva médica, usa la dosis, presentación y contexto para leerla con precisión:\n"
-        "   - Si dice algo como 'Om... 3 caps 1000 mg', escribe 'Omega 3 1000 mg' (no 'Omacor').\n"
-        "   - Si dice algo como 'Cal... / Calcio tab', escribe 'Calcibon' (no 'Calaxin').\n"
-        "   - Si dice 'Vit D' o 'Farma D (Vit D) 2000 ui', escribe 'Vitamina D 2000 UI'.\n"
-        "4. Nunca censures ni omitas medicamentos por ser antibióticos o psicotrópicos.\n"
-        "5. Si un ítem es totalmente indescifrable y no se puede deducir, no lo inventes y pon 'ilegibles': true.\n"
-        '6. Responde SOLO con un objeto JSON válido con esta estructura exacta: {"medicamentos": ["..."], "ilegibles": true/false}.'
+        "1. Responde SOLO con un objeto JSON válido con esta estructura exacta: "
+        '{"medicamentos": ["..."], "ilegibles": true/false}.\n'
+        "2. Nunca censures ni omitas medicamentos por ser antibióticos o psicotrópicos; esto es solo lectura de texto para consultar precios.\n"
+        "3. Si una palabra es ilegible por caligrafía, NO la inventes; pon 'ilegibles': true.\n"
+        '4. Si no hay medicamentos en la imagen, devuelve {"medicamentos": [], "ilegibles": false}.'
     )
     if caption:
         instruccion += f"\nTexto acompañante enviado por el cliente: {caption}"
@@ -1025,8 +1051,8 @@ def extraer_medicamentos_de_imagen_gemini(
             meds = []
         meds_limpios = []
         for m in meds:
-            val = re.sub(r"\s+", " ", str(m)).strip()
-            if val and _normalizar(val) not in {_normalizar(x) for x in meds_limpios}:
+            val = str(m).strip()
+            if val and val not in meds_limpios:
                 meds_limpios.append(val)
         return {
             "medicamentos": meds_limpios,
